@@ -33,9 +33,14 @@ export default defineConfig({
 		presetWebFonts({
 			provider: 'google',
 			fonts: {
-				sans: 'Inter',
-				serif: ['Cardo', 'Roboto Serif'],
-				heading: ['Roboto Serif', 'serif']
+				sans: {
+					name: 'Inter',
+					weights: ['400', '700']
+				},
+				heading: {
+					name: 'Roboto Serif',
+					weights: ['400', '700', '900']
+				}
 			}
 		})
 	]
