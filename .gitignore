@@ -1,0 +1,14 @@
+*.md
+!README.md
+previews/
+.agents/
+skills-lock.json
+
+node_modules/
+.svelte-kit/
+build/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
