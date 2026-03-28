@@ -45,6 +45,7 @@
 		"vitest-browser-svelte": "^2.0.2"
 	},
 	"dependencies": {
-		"surrealdb": "^2.0.3"
+		"surrealdb": "^2.0.3",
+		"zod": "^4.3.6"
 	}
 }
