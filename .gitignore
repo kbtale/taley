@@ -27,3 +27,5 @@ test-results
 .vscode/
 bun.lockb
 .npmrc
+
+surreal_data/
