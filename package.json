@@ -19,10 +19,13 @@
 	"devDependencies": {
 		"@eslint/compat": "^2.0.3",
 		"@eslint/js": "^10.0.1",
+		"@iconify-json/lucide": "^1.2.100",
 		"@playwright/test": "^1.58.2",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@types/node": "^24",
+		"@unocss/preset-icons": "^66.6.7",
+		"@unocss/preset-web-fonts": "^66.6.7",
 		"@vitest/browser-playwright": "^4.1.0",
 		"eslint": "^10.0.3",
 		"eslint-config-prettier": "^10.1.8",
@@ -36,6 +39,7 @@
 		"svelte-check": "^4.4.2",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.57.0",
+		"unocss": "^66.6.7",
 		"vite": "^7.3.1",
 		"vitest": "^4.1.0",
 		"vitest-browser-svelte": "^2.0.2"

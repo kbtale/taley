@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import UnoCSS from 'unocss/vite';
 
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [UnoCSS(), sveltekit()],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
