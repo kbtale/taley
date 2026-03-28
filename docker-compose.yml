@@ -1,0 +1,17 @@
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: taley-db
+    ports:
+      - "8000:8000"
+    environment:
+      - SURREAL_USER=${SURREAL_USER:-root}
+      - SURREAL_PASS=${SURREAL_PASS:-root}
+    command: >
+      start --log debug 
+      --user ${SURREAL_USER:-root} 
+      --pass ${SURREAL_PASS:-root} 
+      surrealkv:/data/taley.db
+    volumes:
+      - ./surreal_data:/data
+    restart: always
