@@ -3,7 +3,7 @@
 	import IconButton from './ui/IconButton.svelte';
 </script>
 
-<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-linen border-b border-stone-200">
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-linen border-b-1 border-solid border-stone-300">
 	<div class="flex items-center gap-8">
 		<span class="text-2xl font-black text-burnt-peach uppercase font-heading tracking-tight">Taley</span>
 

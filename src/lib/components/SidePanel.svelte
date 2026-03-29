@@ -7,56 +7,85 @@
 
 	const universe = $derived(ui.universe);
 	const events = $derived(ui.events);
+
+	function getEventColor(type: string) {
+		switch (type) {
+			case 'node_added': return 'bg-muted-teal';
+			case 'discovery': return 'bg-sunlit-clay';
+			case 'mutation': return 'bg-burnt-peach';
+			default: return 'bg-stone-400';
+		}
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && command.trim()) {
+			ui.addEvent({
+				id: crypto.randomUUID(),
+				type: 'mutation',
+				name: 'Command',
+				message: command,
+				timestamp: Date.now()
+			});
+			command = '';
+		}
+	}
 </script>
 
-<aside class="w-96 h-full flex flex-col bg-stone-50 border-r border-stone-200">
-	{#if universe}
-		<section class="p-8 border-b border-stone-200">
-			<h2 class="font-heading text-2xl font-bold text-stone-900 mb-4">{universe.title}</h2>
-			<p class="text-stone-600 font-sans italic mb-6 leading-relaxed">"{universe.premise}"</p>
-			
-			{#if universe.constraints.length > 0}
-				<div class="space-y-4">
-					<h3 class="font-sans text-[10px] uppercase tracking-[0.2em] text-stone-500 font-bold">Constraints</h3>
-					<ol class="space-y-3 font-sans text-sm text-stone-700 list-decimal list-inside">
-						{#each universe.constraints as constraint, i (i)}
-							<li>{constraint}</li>
-						{/each}
-					</ol>
-				</div>
-			{/if}
-		</section>
-	{/if}
+<aside class="w-96 h-full flex flex-col bg-stone-50 border-r-1 border-solid border-t-0 border-b-0 border-l-0 border-stone-300 z-40">
+	<header class="p-6">
+		<h2 class="font-heading text-lg font-bold text-stone-900 tracking-tight uppercase tracking-[0.2em] opacity-40">
+			{universe?.title || 'Conversation'}
+		</h2>
+	</header>
 
-	<section class="flex-1 overflow-y-auto px-8 py-6">
-		<h3 class="font-sans text-[10px] uppercase tracking-[0.2em] text-stone-500 font-bold mb-6">Chronicles Feed</h3>
-		
-		{#if events.length === 0}
-			<p class="text-stone-400 font-sans text-xs italic">No activity yet</p>
-		{:else}
-			<div class="space-y-8">
+	<section class="flex-1 overflow-y-auto px-8 py-6" style="scrollbar-width: thin; scrollbar-color: #d7c3b2 transparent;">
+		{#if events.length > 0}
+			<div class="space-y-6">
 				{#each events as event (event.id)}
-					<div class="relative pl-6 border-l border-stone-300/50">
-						<div class="absolute -left-[5px] top-0 w-2.h-2 bg-sunlit-clay"></div>
-						<span class="font-sans text-[10px] text-stone-400 block mb-1 uppercase tracking-widest">
+					<div class="relative pl-6 transition-all duration-500">
+						<div class="absolute -left-[5px] top-1.5 w-2 h-2 {getEventColor(event.type)}"></div>
+						<p class="font-sans text-sm text-stone-800 leading-relaxed">
+							{event.message}
+						</p>
+						<span class="font-sans text-[9px] text-stone-400 block mt-1 uppercase tracking-widest font-bold">
 							{new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 						</span>
-						<p class="font-sans text-sm text-stone-800 leading-snug">{event.message}</p>
 					</div>
 				{/each}
 			</div>
 		{/if}
 	</section>
 
-	<div class="p-6 bg-stone-100 border-t border-stone-200">
-		<div class="relative group">
+	<div class="p-6">
+		<div class="w-full bg-white border-1 border-solid border-stone-300 shadow-sm flex items-center focus-within:border-burnt-peach transition-colors">
 			<input 
 				type="text"
 				bind:value={command}
-				placeholder="Enter mutation..."
-				class="w-full bg-transparent border-b border-stone-300 focus:border-sunlit-clay transition-colors font-sans text-sm py-2 px-1 focus:ring-0 outline-none"
+				onkeydown={handleKeydown}
+				placeholder="Message"
+				class="appearance-none flex-1 bg-transparent p-3 text-sm font-sans border-none outline-none focus:ring-0 text-stone-900 placeholder-stone-400"
 			/>
-			<span class="absolute right-2 bottom-2 i-lucide-terminal text-stone-400 text-lg"></span>
+			<div class="p-1">
+				<button 
+					onclick={() => {
+						if (command.trim()) {
+							ui.addEvent({
+								id: crypto.randomUUID(),
+								type: 'mutation',
+								name: 'Command',
+								message: command,
+								timestamp: Date.now()
+							});
+							command = '';
+						}
+					}}
+					class="w-8 h-8 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
+					disabled={!command.trim()}
+					aria-label="Send Message"
+				>
+					<span class="i-lucide-arrow-up text-base"></span>
+				</button>
+			</div>
 		</div>
 	</div>
 </aside>

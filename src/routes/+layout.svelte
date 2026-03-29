@@ -18,7 +18,7 @@
 <div class="h-screen w-screen overflow-hidden bg-linen text-stone-900 font-sans flex flex-col">
 	<TopAppBar />
 	
-	<main class="flex-1 mt-16 overflow-hidden">
+	<main class="flex-1 overflow-hidden pt-16">
 		{@render children()}
 	</main>
 	

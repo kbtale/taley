@@ -11,7 +11,7 @@
 		textareaRef?.focus();
 	});
 
-	function beginArchiving() {
+	function createUniverse() {
 		if (!seedPrompt.trim()) return;
 
 		ui.setUniverse({
@@ -19,6 +19,13 @@
 			title: 'New Workspace',
 			premise: seedPrompt,
 			constraints: []
+		});
+		ui.addEvent({
+			id: crypto.randomUUID(),
+			type: 'mutation',
+			name: 'Genesis',
+			message: seedPrompt,
+			timestamp: Date.now()
 		});
 	}
 
@@ -47,7 +54,7 @@
 
 					<div class="p-2">
 						<button 
-							onclick={beginArchiving}
+							onclick={createUniverse}
 							class="w-10 h-10 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
 							disabled={!seedPrompt.trim()}
 							aria-label="Forge Universe"

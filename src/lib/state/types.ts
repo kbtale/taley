@@ -12,6 +12,7 @@ export type EventType = 'node_added' | 'mutation' | 'discovery';
 export interface AppEvent {
     id: string;
     type: EventType;
+    name: string;
     message: string;
     timestamp: number;
 }
