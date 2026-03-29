@@ -87,7 +87,7 @@
 							onclick={createUniverse}
 							class="w-10 h-10 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
 							disabled={!seedPrompt.trim()}
-							aria-label="Forge Universe"
+							aria-label="Create Universe"
 						>
 							<span class="i-lucide-arrow-up text-lg"></span>
 						</button>
