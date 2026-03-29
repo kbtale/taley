@@ -27,6 +27,18 @@
 			message: seedPrompt,
 			timestamp: Date.now()
 		});
+
+		// Seed starter nodes
+		const entityId = crypto.randomUUID();
+		const locationId = crypto.randomUUID();
+		const artifactId = crypto.randomUUID();
+
+		ui.addNode({ id: entityId, name: 'Protagonist', category: 'biological', description: 'The central entity', position: { x: 300, y: 250 } });
+		ui.addNode({ id: locationId, name: 'Origin', category: 'location', description: 'Where it begins', position: { x: 550, y: 200 } });
+		ui.addNode({ id: artifactId, name: 'Catalyst', category: 'artifact', description: 'The trigger', position: { x: 450, y: 420 } });
+
+		ui.addEdge({ id: crypto.randomUUID(), source: entityId, target: locationId, label: 'Inhabits' });
+		ui.addEdge({ id: crypto.randomUUID(), source: entityId, target: artifactId, label: 'Seeks' });
 	}
 
 	function setTry(text: string) {

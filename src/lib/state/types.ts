@@ -24,5 +24,13 @@ export interface AppNode {
     name: string;
     category: NodeCategory;
     description: string;
+    position: { x: number; y: number };
     payload?: Record<string, unknown>;
+}
+
+export interface AppEdge {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
 }

@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { ViewMode, Universe, AppNode, AppEvent } from './types.js';
+import type { ViewMode, Universe, AppNode, AppEdge, AppEvent } from './types.js';
 
 const UI_STATE_KEY = Symbol('UI_STATE');
 
@@ -7,6 +7,8 @@ export class UIState {
     currentView = $state<ViewMode>('genesis');
     universe = $state<Universe | null>(null);
     events = $state<AppEvent[]>([]);
+    nodes = $state<AppNode[]>([]);
+    edges = $state<AppEdge[]>([]);
     selectedNode = $state<AppNode | null>(null);
 
     isCodexOpen = $derived(this.selectedNode !== null);
@@ -26,6 +28,14 @@ export class UIState {
 
     addEvent(event: AppEvent) {
         this.events.push(event);
+    }
+
+    addNode(node: AppNode) {
+        this.nodes.push(node);
+    }
+
+    addEdge(edge: AppEdge) {
+        this.edges.push(edge);
     }
 }
 
