@@ -3,6 +3,9 @@
 	import '../app.css';
 	import TopAppBar from '$lib/components/TopAppBar.svelte';
 	import BottomNavBar from '$lib/components/BottomNavBar.svelte';
+	import { initUIState } from '$lib/state/ui.svelte.js';
+
+	initUIState();
 
 	let { children } = $props();
 </script>
