@@ -29,8 +29,23 @@ export interface AppNode {
 }
 
 export interface AppEdge {
-    id: string;
-    source: string;
-    target: string;
-    label?: string;
+	id: string;
+	source: string;
+	target: string;
+	label?: string;
+}
+
+export type MutationState = 'idle' | 'calculating' | 'reviewing';
+
+export interface PendingMutation {
+	id: string;
+	description: string;
+	affectedNodes: string[]; // Node IDs
+	diffs: {
+		nodeId: string;
+		nodeName: string;
+		field: string;
+		oldValue: string;
+		newValue: string;
+	}[];
 }

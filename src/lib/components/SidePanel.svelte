@@ -17,16 +17,42 @@
 		}
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' && command.trim()) {
+	function submitCommand() {
+		const cmd = command.trim();
+		if (!cmd) return;
+
+		if (['/mutate', '/mutation'].includes(cmd.toLowerCase())) {
+			ui.startMutation();
+			setTimeout(() => {
+				const protagonist = ui.nodes.find(n => n.category === 'biological');
+				ui.stageMutation({
+					id: crypto.randomUUID(),
+					description: 'The entity undergoes a radical biological shift as the resonance rift stabilizes.',
+					affectedNodes: protagonist ? [protagonist.id] : [],
+					diffs: protagonist ? [{
+						nodeId: protagonist.id,
+						nodeName: protagonist.name,
+						field: 'description',
+						oldValue: protagonist.description,
+						newValue: 'A being fully synthesized with the rhythmic resonance of the rift.'
+					}] : []
+				});
+			}, 1500);
+		} else {
 			ui.addEvent({
 				id: crypto.randomUUID(),
 				type: 'mutation',
 				name: 'Command',
-				message: command,
+				message: cmd,
 				timestamp: Date.now()
 			});
-			command = '';
+		}
+		command = '';
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			submitCommand();
 		}
 	}
 </script>
@@ -67,18 +93,7 @@
 			/>
 			<div class="p-1">
 				<button 
-					onclick={() => {
-						if (command.trim()) {
-							ui.addEvent({
-								id: crypto.randomUUID(),
-								type: 'mutation',
-								name: 'Command',
-								message: command,
-								timestamp: Date.now()
-							});
-							command = '';
-						}
-					}}
+					onclick={submitCommand}
 					class="w-8 h-8 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
 					disabled={!command.trim()}
 					aria-label="Send Message"

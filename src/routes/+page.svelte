@@ -4,6 +4,8 @@
 	import SidePanel from '$lib/components/SidePanel.svelte';
 	import GraphCanvas from '$lib/components/GraphCanvas.svelte';
 	import InspectionPanel from '$lib/components/InspectionPanel.svelte';
+	import MutationOverlay from '$lib/components/MutationOverlay.svelte';
+	import DiffSidebar from '$lib/components/DiffSidebar.svelte';
 
 	const ui = getUIState();
 </script>
@@ -14,6 +16,13 @@
 	<div class="flex h-full w-full overflow-hidden bg-linen">
 		<SidePanel />
 		<GraphCanvas />
-		<InspectionPanel />
+		
+		{#if ui.mutationState === 'reviewing'}
+			<DiffSidebar />
+		{:else}
+			<InspectionPanel />
+		{/if}
+
+		<MutationOverlay />
 	</div>
 {/if}

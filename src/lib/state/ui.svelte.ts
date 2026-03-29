@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { ViewMode, Universe, AppNode, AppEdge, AppEvent } from './types.js';
+import type { ViewMode, Universe, AppNode, AppEdge, AppEvent, MutationState, PendingMutation } from './types.js';
 
 const UI_STATE_KEY = Symbol('UI_STATE');
 
@@ -10,6 +10,10 @@ export class UIState {
     nodes = $state<AppNode[]>([]);
     edges = $state<AppEdge[]>([]);
     selectedNode = $state<AppNode | null>(null);
+
+    // Mutation State
+    mutationState = $state<MutationState>('idle');
+    pendingMutation = $state<PendingMutation | null>(null);
 
     isCodexOpen = $derived(this.selectedNode !== null);
 
@@ -36,6 +40,50 @@ export class UIState {
 
     addEdge(edge: AppEdge) {
         this.edges.push(edge);
+    }
+
+    // Mutation Actions
+    startMutation() {
+        this.mutationState = 'calculating';
+    }
+
+    stageMutation(mutation: PendingMutation) {
+        this.pendingMutation = mutation;
+        this.mutationState = 'reviewing';
+    }
+
+    commitMutation() {
+        if (!this.pendingMutation) return;
+
+        // Build the event
+        const event: AppEvent = {
+            id: crypto.randomUUID(),
+            type: 'mutation',
+            name: 'Update',
+            message: this.pendingMutation.description,
+            timestamp: Date.now()
+        };
+        this.addEvent(event);
+
+        this.pendingMutation.diffs.forEach((diff) => {
+            const node = this.nodes.find((n) => n.id === diff.nodeId);
+            if (!node) return;
+
+            if (diff.field === 'name' || diff.field === 'description') {
+                node[diff.field] = diff.newValue;
+            } else if (node.payload && diff.field.startsWith('payload.')) {
+                const key = diff.field.split('.')[1];
+                if (key) node.payload[key] = diff.newValue;
+            }
+        });
+
+        this.mutationState = 'idle';
+        this.pendingMutation = null;
+    }
+
+    abortMutation() {
+        this.mutationState = 'idle';
+        this.pendingMutation = null;
     }
 }
 

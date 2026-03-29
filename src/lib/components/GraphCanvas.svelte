@@ -28,12 +28,13 @@
 >
 	<Svelvet minimap={false} controls={false} fitView>
 		{#each nodes as node (node.id)}
+			{@const isMutating = ui.mutationState === 'reviewing' && ui.pendingMutation?.affectedNodes.includes(node.id)}
 			<Node id={node.id} position={{ x: node.position.x, y: node.position.y }} bgColor="transparent" borderColor="transparent" let:grabHandle>
 				<div use:grabHandle>
 					{#if node.category === 'biological'}
-						<BiologicalNode {node} onclick={handleNodeClick} />
+						<BiologicalNode {node} onclick={handleNodeClick} mutating={isMutating} />
 					{:else}
-						<GenericNode {node} onclick={handleNodeClick} />
+						<GenericNode {node} onclick={handleNodeClick} mutating={isMutating} />
 					{/if}
 				</div>
 			</Node>
