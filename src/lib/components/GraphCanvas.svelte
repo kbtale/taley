@@ -19,7 +19,13 @@
 	function centerView() {}
 </script>
 
-<div class="flex-1 relative overflow-hidden canvas-grid">
+<div 
+	class="flex-1 relative overflow-hidden canvas-grid" 
+	onclick={(e) => {
+		if (e.target === e.currentTarget) ui.selectNode(null);
+	}}
+	role="presentation"
+>
 	<Svelvet minimap={false} controls={false} fitView>
 		{#each nodes as node (node.id)}
 			<Node id={node.id} position={{ x: node.position.x, y: node.position.y }} bgColor="transparent" borderColor="transparent" let:grabHandle>

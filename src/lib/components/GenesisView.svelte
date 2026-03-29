@@ -18,7 +18,11 @@
 			id: crypto.randomUUID(),
 			title: 'New Workspace',
 			premise: seedPrompt,
-			constraints: []
+			constraints: [
+				'Physics is governed by rhythmic resonance',
+				'No silicon-based technology exists',
+				'Linear time is perceived only by biological beings'
+			]
 		});
 		ui.addEvent({
 			id: crypto.randomUUID(),
@@ -33,9 +37,23 @@
 		const locationId = crypto.randomUUID();
 		const artifactId = crypto.randomUUID();
 
-		ui.addNode({ id: entityId, name: 'Protagonist', category: 'biological', description: 'The central entity', position: { x: 300, y: 250 } });
-		ui.addNode({ id: locationId, name: 'Origin', category: 'location', description: 'Where it begins', position: { x: 550, y: 200 } });
-		ui.addNode({ id: artifactId, name: 'Catalyst', category: 'artifact', description: 'The trigger', position: { x: 450, y: 420 } });
+		ui.addNode({ 
+			id: entityId, 
+			name: 'Protagonist', 
+			category: 'biological', 
+			description: 'The central entity of this nascent world, currently lacking a defined path but possessing a strong resonance with the underlying laws of the universe.',
+			position: { x: 300, y: 250 },
+			payload: {
+				identity: { age: 28, gender: 'Non-binary', species: 'Humanoid', origin: 'The Resonance Rift' },
+				psychology: {
+					mbti: 'INTJ',
+					enneagram: '5w6',
+					big5: { openness: 85, conscientiousness: 70, extraversion: 30, agreeableness: 45, neuroticism: 40 }
+				}
+			}
+		});
+		ui.addNode({ id: locationId, name: 'Origin', category: 'location', description: 'A geographical node of high symbolic importance.', position: { x: 550, y: 200 } });
+		ui.addNode({ id: artifactId, name: 'Catalyst', category: 'artifact', description: 'A physical object that triggers a phase shift in the narrative.', position: { x: 450, y: 420 } });
 
 		ui.addEdge({ id: crypto.randomUUID(), source: entityId, target: locationId, label: 'Inhabits' });
 		ui.addEdge({ id: crypto.randomUUID(), source: entityId, target: artifactId, label: 'Seeks' });

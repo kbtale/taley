@@ -3,6 +3,7 @@
 	import GenesisView from '$lib/components/GenesisView.svelte';
 	import SidePanel from '$lib/components/SidePanel.svelte';
 	import GraphCanvas from '$lib/components/GraphCanvas.svelte';
+	import InspectionPanel from '$lib/components/InspectionPanel.svelte';
 
 	const ui = getUIState();
 </script>
@@ -13,5 +14,6 @@
 	<div class="flex h-full w-full overflow-hidden bg-linen">
 		<SidePanel />
 		<GraphCanvas />
+		<InspectionPanel />
 	</div>
 {/if}
