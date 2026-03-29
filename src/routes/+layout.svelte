@@ -1,5 +1,6 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
+	import 'virtual:uno.css';
 	import '../app.css';
 	import TopAppBar from '$lib/components/TopAppBar.svelte';
 	import BottomNavBar from '$lib/components/BottomNavBar.svelte';

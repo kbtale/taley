@@ -4,11 +4,17 @@ import {
 	presetIcons,
 	presetTypography,
 	presetUno,
-	presetWebFonts
+	presetWebFonts,
+	transformerDirectives,
+	transformerVariantGroup
 } from 'unocss';
 
 export default defineConfig({
 	shortcuts: [],
+	transformers: [
+		transformerDirectives(),
+		transformerVariantGroup()
+	],
 	theme: {
 		colors: {
 			linen: '#FAF0E6',
@@ -18,6 +24,21 @@ export default defineConfig({
 			'muted-teal': '#87BAB2'
 		}
 	},
+	preflights: [
+		{
+			getCSS: () => `
+        button {
+          background: none;
+          color: inherit;
+          border: none;
+          padding: 0;
+          font: inherit;
+          cursor: pointer;
+          outline: inherit;
+        }
+      `
+		}
+	],
 	presets: [
 		presetUno(),
 		presetAttributify(),

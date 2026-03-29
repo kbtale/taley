@@ -5,6 +5,11 @@
 
 	let seedPrompt = $state('');
 	let complexity = $state<'low' | 'medium' | 'high'>('medium');
+	let textareaRef = $state<HTMLTextAreaElement | null>(null);
+
+	$effect(() => {
+		textareaRef?.focus();
+	});
 
 	function beginArchiving() {
 		if (!seedPrompt.trim()) return;
@@ -22,66 +27,61 @@
 	}
 </script>
 
-<main class="min-h-screen w-full flex flex-col items-center justify-center px-6 md:px-24">
-	<div class="fixed top-0 left-0 p-8 opacity-20 pointer-events-none">
-		<div class="w-12 h-12 border-t border-l border-sunlit-clay"></div>
-	</div>
-	<div class="fixed bottom-0 right-0 p-8 opacity-20 pointer-events-none">
-		<div class="w-12 h-12 border-b border-r border-sunlit-clay"></div>
-	</div>
-
-	<div 
-		class="absolute inset-0 pointer-events-none flex justify-center opacity-10" 
-		style="background-image: radial-gradient(#d7c3b2 0.5px, transparent 0.5px); background-size: 10px 10px;"
-	></div>
-
-	<div class="w-full max-w-3xl space-y-12 flex flex-col items-center relative z-10">
-		<div class="space-y-2 text-center">
+<section class="h-full w-full flex flex-col items-center justify-center px-6 md:px-24">
+	<div class="w-full max-w-3xl flex flex-col items-center relative z-10">
+		<div class="text-center">
 			<h1 class="font-heading text-3xl md:text-4xl font-bold tracking-tight text-stone-900">What do you want to create?</h1>
-			<p class="font-sans text-xs uppercase tracking-[0.2em] text-stone-500 opacity-70">Define World Premise</p>
 		</div>
 
-		<div class="w-full space-y-6">
+		<div class="w-full">
 			<div class="relative group">
-				<textarea 
-					bind:value={seedPrompt}
-					autofocus
-					class="w-full bg-linen border border-stone-300 p-6 md:p-8 text-xl md:text-2xl font-sans resize-none transition-all duration-300 shadow-sm focus:shadow-md focus:outline-none focus:border-sunlit-clay"
-					style="scrollbar-width: thin; scrollbar-color: #d7c3b2 transparent;"
-					placeholder="Describe the core mechanics of your world..." 
-					rows="4"
-				></textarea>
+				<div class="w-full bg-stone-50 border border-stone-200 flex items-end shadow-sm duration-300 transition-all focus-within:border-burnt-peach focus-within:ring-1 focus-within:ring-burnt-peach/20">
+					<textarea 
+						bind:value={seedPrompt}
+						bind:this={textareaRef}
+						class="appearance-none flex-1 bg-transparent p-4 text-base font-sans resize-none border-none outline-none focus:ring-0 text-stone-900 placeholder-stone-400"
+						style="scrollbar-width: thin; scrollbar-color: #d7c3b2 transparent;"
+						placeholder="Describe the world you want to create..." 
+						rows="4"
+					></textarea>
+
+					<div class="p-2">
+						<button 
+							onclick={beginArchiving}
+							class="w-10 h-10 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
+							disabled={!seedPrompt.trim()}
+							aria-label="Forge Universe"
+						>
+							<span class="i-lucide-arrow-up text-lg"></span>
+						</button>
+					</div>
+				</div>
 
 				<div class="flex flex-wrap justify-center gap-4 pt-4 opacity-60">
 					<span class="font-sans text-[10px] uppercase tracking-wider text-stone-500">Try:</span>
-					<button onclick={() => setTry("A hard sci-fi orbital colony...")} class="font-sans italic text-xs hover:text-sunlit-clay transition-colors">"A hard sci-fi orbital colony..."</button>
-					<button onclick={() => setTry("A low-fantasy island nation...")} class="font-sans italic text-xs hover:text-sunlit-clay transition-colors">"A low-fantasy island nation..."</button>
-					<button onclick={() => setTry("A dystopian underwater city...")} class="font-sans italic text-xs hover:text-sunlit-clay transition-colors">"A dystopian underwater city..."</button>
+					<button onclick={() => setTry("A hard sci-fi orbital colony...")} class="font-sans italic text-xs hover:text-burnt-peach transition-colors">"A hard sci-fi orbital colony..."</button>
+					<button onclick={() => setTry("A low-fantasy island nation...")} class="font-sans italic text-xs hover:text-burnt-peach transition-colors">"A low-fantasy island nation..."</button>
+					<button onclick={() => setTry("A dystopian underwater city...")} class="font-sans italic text-xs hover:text-burnt-peach transition-colors">"A dystopian underwater city..."</button>
 				</div>
 			</div>
 
-			<div class="flex flex-col items-center space-y-4 pt-4">
-				<span class="font-sans text-[10px] uppercase tracking-widest text-stone-500 font-bold">Complexity Level</span>
-				<div class="flex items-center p-1 bg-stone-100 border border-stone-300/30">
+			<div class="flex flex-col items-center pt-8">
+				<span class="font-sans text-xs uppercase tracking-widest text-stone-500 font-bold">Complexity</span>
+				<div class="flex items-center p-1 bg-stone-100 border-1 border-solid border-stone-300 mt-1">
 					<button 
 						onclick={() => complexity = 'low'} 
-						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'low' ? 'bg-sunlit-clay text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
+						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'low' ? 'bg-burnt-peach text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
 					>Low</button>
 					<button 
 						onclick={() => complexity = 'medium'} 
-						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'medium' ? 'bg-sunlit-clay text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
+						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'medium' ? 'bg-burnt-peach text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
 					>Medium</button>
 					<button 
 						onclick={() => complexity = 'high'} 
-						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'high' ? 'bg-sunlit-clay text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
+						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'high' ? 'bg-burnt-peach text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
 					>High</button>
 				</div>
 			</div>
 		</div>
-
-		<button onclick={beginArchiving} class="group flex items-center space-x-3 opacity-80 hover:opacity-100 transition-opacity">
-			<span class="font-heading font-bold text-sm uppercase tracking-[0.3em] text-sunlit-clay">Forge Universe</span>
-			<span class="i-lucide-arrow-right text-sunlit-clay text-sm transition-transform group-hover:translate-x-1"></span>
-		</button>
 	</div>
-</main>
+</section>

@@ -5,21 +5,21 @@
 
 <header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-linen border-b border-stone-200">
 	<div class="flex items-center gap-8">
-		<span class="text-2xl font-black text-sunlit-clay uppercase font-heading tracking-tight">Taley</span>
+		<span class="text-2xl font-black text-burnt-peach uppercase font-heading tracking-tight">Taley</span>
 
 		<nav class="hidden md:flex gap-6">
-			<a class="text-sunlit-clay border-b-2 border-sunlit-clay pb-1 font-heading font-bold tracking-tight text-xs" href="#">
+			<button class="text-burnt-peach border-b-2 border-burnt-peach pb-1 font-heading font-bold tracking-tight text-xs bg-transparent border-t-0 border-x-0 cursor-pointer">
 				Chronicles
-			</a>
-			<a class="text-stone-500 hover:text-sunlit-clay transition-colors duration-200 font-heading font-bold tracking-tight text-xs" href="#">
+			</button>
+			<button class="text-stone-500 hover:text-burnt-peach transition-colors duration-200 font-heading font-bold tracking-tight text-xs bg-transparent border-0 cursor-pointer">
 				Atlas
-			</a>
-			<a class="text-stone-500 hover:text-sunlit-clay transition-colors duration-200 font-heading font-bold tracking-tight text-xs" href="#">
+			</button>
+			<button class="text-stone-500 hover:text-burnt-peach transition-colors duration-200 font-heading font-bold tracking-tight text-xs bg-transparent border-0 cursor-pointer">
 				Lexicon
-			</a>
-			<a class="text-stone-500 hover:text-sunlit-clay transition-colors duration-200 font-heading font-bold tracking-tight text-xs" href="#">
+			</button>
+			<button class="text-stone-500 hover:text-burnt-peach transition-colors duration-200 font-heading font-bold tracking-tight text-xs bg-transparent border-0 cursor-pointer">
 				Settings
-			</a>
+			</button>
 		</nav>
 	</div>
 
