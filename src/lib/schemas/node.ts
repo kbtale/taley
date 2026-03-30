@@ -3,7 +3,8 @@ import { biologicalPayloadSchema, genericPayloadSchema } from './payload';
 
 const baseNodeSchema = z.object({
 	id: z.string(),
-	name: z.string()
+	name: z.string(),
+	description: z.string()
 });
 
 export const nodeSchema = z.discriminatedUnion('category', [
