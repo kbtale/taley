@@ -100,3 +100,25 @@ export async function requestTaleyAI<T>(options: {
 
 	throw new Error('Max retries reached');
 }
+import { seedResponseSchema, type SeedResponse } from '../schemas/seed.js';
+
+export async function generateUniverseSeed(options: { 
+	premise: string; 
+	complexity: 'low' | 'medium' | 'high' 
+}): Promise<SeedResponse> {
+	const { premise, complexity } = options;
+	
+	const nodeLimits = { low: 10, medium: 25, high: 50 };
+	const limit = nodeLimits[complexity];
+
+	const prompt = `
+		Generate a cohesive world seed following Format 1 (Seed) based on the following premise: "${premise}".
+		Output: Exactly ${limit} nodes.
+	`;
+
+	return await requestTaleyAI({
+		schema: seedResponseSchema,
+		prompt,
+		model: 'google/gemini-3.1-flash-lite-preview'
+	});
+}

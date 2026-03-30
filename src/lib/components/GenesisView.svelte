@@ -11,52 +11,78 @@
 		textareaRef?.focus();
 	});
 
-	function createUniverse() {
-		if (!seedPrompt.trim()) return;
+	let isGenerating = $state(false);
 
-		ui.setUniverse({
-			id: crypto.randomUUID(),
-			title: 'New Workspace',
-			premise: seedPrompt,
-			constraints: [
-				'Physics is governed by rhythmic resonance',
-				'No silicon-based technology exists',
-				'Linear time is perceived only by biological beings'
-			]
-		});
-		ui.addEvent({
-			id: crypto.randomUUID(),
-			type: 'mutation',
-			name: 'Genesis',
-			message: seedPrompt,
-			timestamp: Date.now()
-		});
+	async function createUniverse() {
+		if (!seedPrompt.trim() || isGenerating) return;
 
-		// Seed starter nodes
-		const entityId = crypto.randomUUID();
-		const locationId = crypto.randomUUID();
-		const artifactId = crypto.randomUUID();
+		isGenerating = true;
+		
+		try {
+			const response = await fetch('/api/universe/seed', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ 
+					premise: seedPrompt, 
+					complexity 
+				})
+			});
 
-		ui.addNode({ 
-			id: entityId, 
-			name: 'Protagonist', 
-			category: 'biological', 
-			description: 'The central entity of this nascent world, currently lacking a defined path but possessing a strong resonance with the underlying laws of the universe.',
-			position: { x: 300, y: 250 },
-			payload: {
-				identity: { age: 28, gender: 'Non-binary', species: 'Humanoid', origin: 'The Resonance Rift' },
-				psychology: {
-					mbti: 'INTJ',
-					enneagram: '5w6',
-					big5: { openness: 85, conscientiousness: 70, extraversion: 30, agreeableness: 45, neuroticism: 40 }
-				}
-			}
-		});
-		ui.addNode({ id: locationId, name: 'Origin', category: 'location', description: 'A geographical node of high symbolic importance.', position: { x: 550, y: 200 } });
-		ui.addNode({ id: artifactId, name: 'Catalyst', category: 'artifact', description: 'A physical object that triggers a phase shift in the narrative.', position: { x: 450, y: 420 } });
+			if (!response.ok) throw new Error('Big Bang failed');
 
-		ui.addEdge({ id: crypto.randomUUID(), source: entityId, target: locationId, label: 'Inhabits' });
-		ui.addEdge({ id: crypto.randomUUID(), source: entityId, target: artifactId, label: 'Seeks' });
+			const data = await response.json();
+			const { universe, nodes, edges } = data;
+
+			ui.setUniverse({
+				id: data.universeId,
+				title: universe.name,
+				premise: universe.seed_premise,
+				constraints: universe.constraints || []
+			});
+
+			nodes.forEach((node: import('../schemas/node.js').Node) => {
+				const logicalCategory: import('$lib/state/types.js').NodeCategory = (() => {
+					switch (node.category) {
+						case 'Biological Entity': return 'biological';
+						case 'Location': return 'location';
+						case 'Artifact': return 'artifact';
+						default: return 'generic';
+					}
+				})();
+
+				ui.addNode({
+					id: node.id,
+					name: node.name,
+					description: node.description,
+					category: logicalCategory,
+					payload: node.payload,
+					position: { x: Math.random() * 800, y: Math.random() * 600 }
+				});
+			});
+
+			edges.forEach((edge: import('../schemas/edge.js').Edge) => {
+				ui.addEdge({
+					id: crypto.randomUUID(),
+					source: edge.source,
+					target: edge.target,
+					label: edge.visual_nature
+				});
+			});
+
+			ui.addEvent({
+				id: crypto.randomUUID(),
+				type: 'mutation',
+				name: 'Genesis',
+				message: `Universe "${universe.name}" generated successfully.`,
+				timestamp: Date.now()
+			});
+
+		} catch (err) {
+			console.error('Generation Error:', err);
+			alert('Failed to generate universe. Please try again.');
+		} finally {
+			isGenerating = false;
+		}
 	}
 
 	function setTry(text: string) {
