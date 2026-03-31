@@ -5,7 +5,7 @@ import { nodeSchema, type Node } from '$lib/schemas/node.js';
 import { edgeSchema, type Edge } from '$lib/schemas/edge.js';
 import { universeSchema } from '$lib/schemas/universe.js';
 import { generateLocalMutationByAlgorithm } from '$lib/server/generation/mutation-orchestrator.js';
-import { getDb } from '$lib/server/db';
+import { getDb, persistLocalMutation } from '$lib/server/db';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const runId = crypto.randomUUID();
@@ -52,10 +52,26 @@ export const POST: RequestHandler = async ({ request }) => {
 			maxNewNodes: payload.maxNewNodes
 		});
 
+		if (!context.universeId) {
+			return json(
+				{
+					runId,
+					error: 'Missing universe relation',
+					message: `Target node ${payload.targetNodeId} has no universe relation.`
+				},
+				{ status: 500 }
+			);
+		}
+
+		await persistLocalMutation({
+			universeId: context.universeId,
+			mutation
+		});
+
 		return json(
 			{
 				runId,
-				persisted: false,
+				persisted: true,
 				mutation
 			},
 			{ status: 200 }
@@ -99,6 +115,7 @@ async function buildMutationContext(nodeId: string): Promise<{
 	targetNode: Node;
 	neighborNodes: Node[];
 	existingEdges: Edge[];
+	universeId?: string;
 	universe?: { name: string; premise?: string; constraints?: string[] };
 } | null> {
 	const db = await getDb();
@@ -109,6 +126,10 @@ async function buildMutationContext(nodeId: string): Promise<{
 
 	const targetRaw = targetRows[0];
 	const targetNode = toNode(targetRaw);
+	const universeId =
+		targetRaw && typeof targetRaw === 'object'
+			? extractRecordId((targetRaw as { universe?: unknown }).universe) ?? undefined
+			: undefined;
 	const edgeRows = extractRows(
 		await db.query(
 			`SELECT in, out, visual_nature, relational_context
@@ -148,6 +169,7 @@ async function buildMutationContext(nodeId: string): Promise<{
 		targetNode,
 		neighborNodes,
 		existingEdges,
+		universeId,
 		universe
 	};
 }
