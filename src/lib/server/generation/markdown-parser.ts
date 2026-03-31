@@ -85,10 +85,29 @@ export function extractSectionArrayTuples(markdown: string, sectionName: string)
 
 	return lines.map((line, index) => {
 		try {
-			return JSON.parse(line);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Invalid array tuple';
-			throw new Error(`Section ${sectionName} has invalid tuple on line ${index + 1}: ${message}`);
+			return parseTupleLine(line);
+		} catch {
+			throw new Error(
+				`Section ${sectionName} has invalid tuple on line ${index + 1}. Expected array tuple syntax like ["name","desc",["tag"]] or ("name","desc",["tag"]).`
+			);
 		}
 	});
+}
+
+function parseTupleLine(rawLine: string): unknown {
+	let line = rawLine.trim();
+
+	line = line.replace(/^[-*]\s+/, '');
+	line = line.replace(/^\d+[.)]\s+/, '');
+	line = line.replace(/,+\s*$/, '');
+
+	if (line.startsWith('(') && line.endsWith(')')) {
+		line = `[${line.slice(1, -1)}]`;
+	}
+
+	if (!line.startsWith('[') || !line.endsWith(']')) {
+		throw new Error('Invalid tuple wrapper');
+	}
+
+	return JSON.parse(line);
 }
