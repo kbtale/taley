@@ -1,7 +1,9 @@
 import { Surreal } from 'surrealdb';
 import { SURREAL_URL, SURREAL_USER, SURREAL_PASS, SURREAL_NS, SURREAL_DB } from '$env/static/private';
+import type { SeedResponse } from '../schemas/seed.js';
 
 const db = new Surreal();
+const RECORD_ID_PATTERN = /^[a-z_][a-z0-9_]*:[a-z0-9._:-]+$/i;
 
 export async function getDb() {
 	if (db.status !== 'connected') {
@@ -16,13 +18,17 @@ export async function getDb() {
 	}
 	return db;
 }
-import type { SeedResponse } from '../schemas/seed.js';
 
 export async function persistUniverseSeed(data: SeedResponse) {
 	const db = await getDb();
 	const { universe, nodes, edges } = data;
 
 	const universeId = universe.id || `universe:${crypto.randomUUID()}`;
+	assertRecordId(universeId, 'universe.id');
+
+	const uniqueNodes = new Map(nodes.map((node) => [node.id, node]));
+	const uniqueEdges = new Map(edges.map((edge) => [`${edge.source}->${edge.target}`, edge]));
+
 	await db.query(`
 		CREATE $id SET 
 			name = $name, 
@@ -35,7 +41,8 @@ export async function persistUniverseSeed(data: SeedResponse) {
 		constraints: universe.constraints || []
 	});
 
-	for (const node of nodes) {
+	for (const node of uniqueNodes.values()) {
+		assertRecordId(node.id, 'node.id');
 		await db.query(`
 			CREATE $id SET 
 				name = $name, 
@@ -52,17 +59,19 @@ export async function persistUniverseSeed(data: SeedResponse) {
 		});
 	}
 
-	for (const edge of edges) {
+	for (const edge of uniqueEdges.values()) {
+		assertRecordId(edge.source, 'edge.source');
+		assertRecordId(edge.target, 'edge.target');
 		await db.query(`
 			RELATE ${edge.source}->linked_to->${edge.target} 
-			-- SET 
-			-- 	visual_nature = $nature,
-			-- 	relational_context = $context
-		`, {
-			// nature: edge.visual_nature,
-			// context: edge.relational_context
-		});
+		`);
 	}
 
 	return { universeId };
+}
+
+function assertRecordId(value: string, field: string) {
+	if (!RECORD_ID_PATTERN.test(value)) {
+		throw new Error(`Invalid record id in ${field}: ${value}`);
+	}
 }
