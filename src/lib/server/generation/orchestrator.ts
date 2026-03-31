@@ -175,7 +175,26 @@ async function generateEnvironmentBatch(options: {
 	const normalizedPayload = Array.isArray(parsedSection)
 		? { nodes: parsedSection }
 		: parsedSection;
-	const response = environmentBatchSchema.parse(normalizedPayload);
+	const candidate = normalizedPayload as { nodes: Array<Record<string, unknown>> };
+	const normalizedNodes = (candidate.nodes ?? []).map((node) => {
+		const payload = typeof node.payload === 'object' && node.payload !== null
+			? (node.payload as Record<string, unknown>)
+			: {};
+		const fallbackDescription =
+			typeof payload.description === 'string' && payload.description.trim().length > 0
+				? payload.description
+				: typeof node.name === 'string'
+					? node.name
+					: 'Unnamed node';
+		return {
+			...node,
+			description:
+				typeof node.description === 'string' && node.description.trim().length > 0
+					? node.description
+					: fallbackDescription
+		};
+	});
+	const response = environmentBatchSchema.parse({ nodes: normalizedNodes });
 
 	for (const node of response.nodes) {
 		environmentCategorySchema.parse(node.category);
