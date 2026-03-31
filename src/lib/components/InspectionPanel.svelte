@@ -24,6 +24,21 @@
 		id: string;
 		name?: string;
 		description?: string;
+		payload?: Record<string, unknown>;
+		category?: string;
+	};
+
+	type MutationApiCreatedNode = {
+		id: string;
+		name: string;
+		category: string;
+		description: string;
+		payload?: Record<string, unknown>;
+	};
+
+	type MutationApiCreatedEdge = {
+		source: string;
+		target: string;
 	};
 
 	type MutationApiResponse = {
@@ -32,11 +47,29 @@
 		mutation?: {
 			summary?: string;
 			affectedNodeIds?: string[];
+			createdNodes?: MutationApiCreatedNode[];
 			updatedNodes?: MutationApiUpdatedNode[];
+			createdEdges?: MutationApiCreatedEdge[];
 		};
 		error?: string;
 		message?: string;
 	};
+
+	function normalizeNodeCategory(category: string): import('$lib/state/types.js').NodeCategory {
+		switch (category) {
+			case 'Character':
+			case 'Location':
+			case 'Artifact':
+			case 'Event':
+			case 'Collective':
+			case 'Concept':
+			case 'Phenomenon':
+			case 'Unknown':
+				return category;
+			default:
+				return 'Unknown';
+		}
+	}
 
 	function buildMutationDiffs(updatedNodes: MutationApiUpdatedNode[]): PendingMutation['diffs'] {
 		const diffs: PendingMutation['diffs'] = [];
@@ -117,7 +150,52 @@
 						.map((value) => ({
 							id: value.id,
 							...(typeof value.name === 'string' ? { name: value.name } : {}),
-							...(typeof value.description === 'string' ? { description: value.description } : {})
+							...(typeof value.description === 'string' ? { description: value.description } : {}),
+							...(value.payload && typeof value.payload === 'object' ? { payload: value.payload } : {})
+						}))
+				: [];
+
+			const createdNodes = Array.isArray(payload.mutation?.createdNodes)
+				? payload.mutation.createdNodes
+						.filter(
+							(value): value is MutationApiCreatedNode =>
+								value !== null &&
+								typeof value === 'object' &&
+								typeof (value as { id?: unknown }).id === 'string' &&
+								typeof (value as { name?: unknown }).name === 'string' &&
+								typeof (value as { category?: unknown }).category === 'string' &&
+								typeof (value as { description?: unknown }).description === 'string'
+						)
+						.map((value, index) => {
+							const baseX = node?.position.x ?? 400;
+							const baseY = node?.position.y ?? 300;
+							return {
+								id: value.id,
+								name: value.name,
+								category: normalizeNodeCategory(value.category),
+								description: value.description,
+								payload: value.payload,
+								position: {
+									x: baseX + (index + 1) * 60,
+									y: baseY + ((index % 2 === 0 ? 1 : -1) * 50)
+								}
+							};
+						})
+				: [];
+
+			const createdEdges = Array.isArray(payload.mutation?.createdEdges)
+				? payload.mutation.createdEdges
+						.filter(
+							(value): value is MutationApiCreatedEdge =>
+								value !== null &&
+								typeof value === 'object' &&
+								typeof (value as { source?: unknown }).source === 'string' &&
+								typeof (value as { target?: unknown }).target === 'string'
+						)
+						.map((value) => ({
+							id: crypto.randomUUID(),
+							source: value.source,
+							target: value.target
 						}))
 				: [];
 
@@ -127,14 +205,20 @@
 					id: payload.runId ?? crypto.randomUUID(),
 					description: summary,
 					affectedNodes: affectedNodeIds,
+					createdNodes,
+					updatedNodes,
+					createdEdges,
 					diffs
 				});
 				keepReviewOpen = true;
-			} else if (diffs.length > 0) {
+			} else if (diffs.length > 0 || createdNodes.length > 0 || createdEdges.length > 0) {
 				ui.stageMutation({
 					id: payload.runId ?? crypto.randomUUID(),
 					description: summary,
 					affectedNodes: affectedNodeIds,
+					createdNodes,
+					updatedNodes,
+					createdEdges,
 					diffs
 				});
 				ui.commitMutation();

@@ -35,10 +35,16 @@ export class UIState {
     }
 
     addNode(node: AppNode) {
+        if (this.nodes.some((existing) => existing.id === node.id)) {
+            return;
+        }
         this.nodes.push(node);
     }
 
     addEdge(edge: AppEdge) {
+        if (this.edges.some((existing) => existing.source === edge.source && existing.target === edge.target)) {
+            return;
+        }
         this.edges.push(edge);
     }
 
@@ -55,17 +61,42 @@ export class UIState {
     commitMutation() {
         if (!this.pendingMutation) return;
 
+        const mutation = this.pendingMutation;
+
         // Build the event
         const event: AppEvent = {
             id: crypto.randomUUID(),
             type: 'mutation',
             name: 'Update',
-            message: this.pendingMutation.description,
+            message: mutation.description,
             timestamp: Date.now()
         };
         this.addEvent(event);
 
-        this.pendingMutation.diffs.forEach((diff) => {
+        mutation.createdNodes?.forEach((node) => {
+            this.addNode(node);
+        });
+
+        mutation.updatedNodes?.forEach((updated) => {
+            const node = this.nodes.find((candidate) => candidate.id === updated.id);
+            if (!node) return;
+
+            if (typeof updated.name === 'string') {
+                node.name = updated.name;
+            }
+            if (typeof updated.description === 'string') {
+                node.description = updated.description;
+            }
+            if (updated.payload && typeof updated.payload === 'object') {
+                node.payload = updated.payload;
+            }
+        });
+
+        mutation.createdEdges?.forEach((edge) => {
+            this.addEdge(edge);
+        });
+
+        mutation.diffs.forEach((diff) => {
             const node = this.nodes.find((n) => n.id === diff.nodeId);
             if (!node) return;
 

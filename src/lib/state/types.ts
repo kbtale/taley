@@ -51,6 +51,14 @@ export interface PendingMutation {
 	id: string;
 	description: string;
 	affectedNodes: string[]; // Node IDs
+    createdNodes?: AppNode[];
+    updatedNodes?: {
+        id: string;
+        name?: string;
+        description?: string;
+        payload?: Record<string, unknown>;
+    }[];
+    createdEdges?: AppEdge[];
 	diffs: {
 		nodeId: string;
 		nodeName: string;
