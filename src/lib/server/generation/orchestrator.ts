@@ -4,15 +4,17 @@ import {
 	environmentCategorySchema,
 	type EnvironmentCategory,
 	type GenerationComplexity,
+	generationMarkdownSectionOrder,
 	universeMetadataSchema,
 	characterBatchSchema
 } from '$lib/schemas/generation.js';
 import type { Node } from '$lib/schemas/node.js';
 import type { Edge } from '$lib/schemas/edge.js';
 import type { MentionRecord } from '$lib/schemas/mention.js';
-import { requestTaleyAI } from '$lib/server/ai.js';
+import { requestTaleyAI, requestTaleyAIMarkdown } from '$lib/server/ai.js';
 import { buildCharacterPsychologySeedSet } from './personality.js';
 import { extractMentionsFromNodes, normalizeName } from './mention-parser.js';
+import { extractSectionJson } from './markdown-parser.js';
 
 const ENVIRONMENT_ORDER: EnvironmentCategory[] = [
 	'Location',
@@ -100,16 +102,20 @@ export async function generateUniverseByAlgorithm(options: {
 
 async function generateUniverseMetadata(premise: string, complexity: GenerationComplexity) {
 	const prompt = [
-		`Generate ONLY universe metadata for this seed premise: "${premise}".`,
+		`Generate universe metadata for this seed premise: "${premise}".`,
 		`Complexity: ${complexity}.`,
-		'Return a JSON object with fields: id, name, seed_premise, constraints.',
+		`Return markdown with exactly one section heading: ## ${generationMarkdownSectionOrder[0]}`,
+		'Inside that section include exactly one ```json fenced block with fields: id, name, seed_premise, constraints.',
 		'Constraints must be an array of concise world rules.'
 	].join('\n');
 
-	return requestTaleyAI({
-		schema: universeMetadataSchema,
-		prompt
+	const markdown = await requestTaleyAIMarkdown({
+		prompt,
+		formatInstruction: `Return ONLY markdown with exactly one section named ## ${generationMarkdownSectionOrder[0]} and a single json fenced block in that section.`
 	});
+
+	const parsedUniverse = extractSectionJson(markdown, generationMarkdownSectionOrder[0]);
+	return universeMetadataSchema.parse(parsedUniverse);
 }
 
 async function generateEnvironmentBatch(options: {

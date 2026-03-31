@@ -47,6 +47,6 @@ export function extractSectionJson(markdown: string, sectionName: string): unkno
 		return JSON.parse(jsonText);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Invalid JSON';
-		throw new Error(`section ${sectionName} has invalid json: ${message}`);
+		throw new Error(`Section ${sectionName} has invalid json: ${message}`);
 	}
 }
