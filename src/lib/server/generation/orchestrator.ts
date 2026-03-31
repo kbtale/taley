@@ -103,7 +103,7 @@ export async function generateUniverseByAlgorithm(options: {
 
 		let targetId = nodeIdByNormalizedName.get(mention.normalizedName);
 		if (!targetId) {
-			const unknownNode = createUnknownNode(mention, nodesById.size);
+			const unknownNode = createUnknownNode(mention);
 			upsertNode(unknownNode, nodesById, nodeIdByNormalizedName);
 			targetId = unknownNode.id;
 		}
@@ -230,10 +230,11 @@ function upsertNode(node: Node, byId: Map<string, Node>, byName: Map<string, str
 	}
 }
 
-function createUnknownNode(mention: MentionRecord, index: number): Node {
+function createUnknownNode(mention: MentionRecord): Node {
 	const slug = normalizeName(mention.name).replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+	const hash = hashString(mention.normalizedName || mention.name);
 	return {
-		id: `node:unknown-${slug || 'entity'}-${index}`,
+		id: `node:unknown-${slug || 'entity'}-${hash}`,
 		name: mention.name,
 		category: 'Unknown',
 		description: 'Auto-created from unresolved mention token.',
@@ -242,6 +243,15 @@ function createUnknownNode(mention: MentionRecord, index: number): Node {
 			dynamic_attributes: ['unknown', 'unresolved_mention']
 		}
 	};
+}
+
+function hashString(value: string): string {
+	let hash = 2166136261;
+	for (let i = 0; i < value.length; i++) {
+		hash ^= value.charCodeAt(i);
+		hash = Math.imul(hash, 16777619);
+	}
+	return (hash >>> 0).toString(36);
 }
 
 async function runStageWithRetries<T>(stage: string, run: () => Promise<T>, runId: string): Promise<T> {
