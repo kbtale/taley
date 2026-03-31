@@ -11,7 +11,7 @@ import {
 import type { Node } from '$lib/schemas/node.js';
 import type { Edge } from '$lib/schemas/edge.js';
 import type { MentionRecord } from '$lib/schemas/mention.js';
-import { requestTaleyAI, requestTaleyAIMarkdown } from '$lib/server/ai.js';
+import { requestTaleyAIMarkdown } from '$lib/server/ai.js';
 import { buildCharacterPsychologySeedSet } from './personality.js';
 import { extractMentionsFromNodes, normalizeName } from './mention-parser.js';
 import { extractSectionJson } from './markdown-parser.js';
@@ -178,6 +178,7 @@ async function generateCharacterBatch(options: {
 }): Promise<Node[]> {
 	const { universe, complexity, existingNodes, psychologySeeds } = options;
 	const contextNames = existingNodes.map((n) => `${n.category}:${n.name}`).slice(0, 100);
+	const sectionName = generationMarkdownSectionOrder[7];
 
 	const prompt = [
 		`Universe: ${universe.name}`,
@@ -189,13 +190,20 @@ async function generateCharacterBatch(options: {
 		'Mention references inside descriptions using token format x!Name!x.',
 		`Use these psychology seed tendencies (in order): ${JSON.stringify(psychologySeeds)}`,
 		contextNames.length > 0 ? `Existing context: ${contextNames.join(', ')}` : 'No prior context.',
-		'Return JSON object: { "nodes": [...] }'
+		`Return markdown with exactly one section heading: ## ${sectionName}.`,
+		'Inside that section include exactly one ```json fenced block with either an array of nodes or an object { "nodes": [...] }.'
 	].join('\n');
 
-	const response = await requestTaleyAI({
-		schema: characterBatchSchema,
-		prompt
+	const markdown = await requestTaleyAIMarkdown({
+		prompt,
+		formatInstruction: `Return ONLY markdown with exactly one section named ## ${sectionName} and a single json fenced block in that section.`
 	});
+
+	const parsedSection = extractSectionJson(markdown, sectionName);
+	const normalizedPayload = Array.isArray(parsedSection)
+		? { nodes: parsedSection }
+		: parsedSection;
+	const response = characterBatchSchema.parse(normalizedPayload);
 
 	return response.nodes as Node[];
 }
