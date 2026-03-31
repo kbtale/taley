@@ -5,14 +5,28 @@ const MENTION_PATTERN = /([a-z])!([^!]+)!\1(?:'s)?/g;
 
 export function parseMentionTokens(text: string): MentionToken[] {
 	const tokens: MentionToken[] = [];
+	const seen = new Set<string>();
 	let match: RegExpExecArray | null;
 
 	while ((match = MENTION_PATTERN.exec(text)) !== null) {
+		const categoryInitial = match[1] ?? '';
+		const name = (match[2] ?? '').trim();
+		if (!name) {
+			continue;
+		}
+		const rawToken = match[0];
+		const offset = match.index;
+		const key = `${categoryInitial}|${name}|${offset}`;
+		if (seen.has(key)) {
+			continue;
+		}
+		seen.add(key);
+
 		tokens.push({
-			categoryInitial: match[1] ?? '',
-			name: (match[2] ?? '').trim(),
-			rawToken: match[0],
-			offset: match.index
+			categoryInitial,
+			name,
+			rawToken,
+			offset
 		});
 	}
 
