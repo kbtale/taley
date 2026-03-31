@@ -49,8 +49,10 @@ export async function generateUniverseByAlgorithm(options: {
 	premise: string;
 	complexity: GenerationComplexity;
 	rngSeed?: number;
+	runId?: string;
 }): Promise<SeedResponse> {
-	const { premise, complexity, rngSeed = Date.now() } = options;
+	const { premise, complexity, rngSeed = Date.now(), runId = crypto.randomUUID() } = options;
+	console.info(`[generation:${runId}] start premiseLength=${premise.length} complexity=${complexity}`);
 	const nodesById = new Map<string, Node>();
 	const nodeIdByNormalizedName = new Map<string, string>();
 	const mentionsIndex: MentionRecord[] = [];
@@ -59,7 +61,7 @@ export async function generateUniverseByAlgorithm(options: {
 
 	const universe = await runStageWithRetries('universe', () =>
 		generateUniverseMetadata(premise, complexity)
-	);
+	, runId);
 
 	for (const category of ENVIRONMENT_ORDER) {
 		const generated = await runStageWithRetries(`environment:${category}`, () =>
@@ -69,7 +71,7 @@ export async function generateUniverseByAlgorithm(options: {
 				complexity,
 				existingNodes: [...nodesById.values()]
 			})
-		);
+		, runId);
 
 		for (const entity of generated) {
 			upsertNode(entity, nodesById, nodeIdByNormalizedName);
@@ -86,7 +88,7 @@ export async function generateUniverseByAlgorithm(options: {
 			existingNodes: [...nodesById.values()],
 			psychologySeeds
 		})
-	);
+	, runId);
 
 	for (const character of generatedCharacters) {
 		upsertNode(character, nodesById, nodeIdByNormalizedName);
@@ -113,11 +115,15 @@ export async function generateUniverseByAlgorithm(options: {
 		}
 	}
 
-	return seedResponseSchema.parse({
+	const result = seedResponseSchema.parse({
 		universe,
 		nodes: [...nodesById.values()],
 		edges
 	});
+	console.info(
+		`[generation:${runId}] done nodes=${result.nodes.length} edges=${result.edges.length} unknown=${result.nodes.filter((n) => n.category === 'Unknown').length}`
+	);
+	return result;
 }
 
 async function generateUniverseMetadata(premise: string, complexity: GenerationComplexity) {
@@ -238,14 +244,19 @@ function createUnknownNode(mention: MentionRecord, index: number): Node {
 	};
 }
 
-async function runStageWithRetries<T>(stage: string, run: () => Promise<T>): Promise<T> {
+async function runStageWithRetries<T>(stage: string, run: () => Promise<T>, runId: string): Promise<T> {
 	let lastError: unknown;
 
 	for (let attempt = 1; attempt <= STAGE_RETRY_ATTEMPTS; attempt++) {
+		const startedAt = Date.now();
 		try {
-			return await run();
+			const result = await run();
+			console.info(`[generation:${runId}] stage=${stage} attempt=${attempt} status=ok durationMs=${Date.now() - startedAt}`);
+			return result;
 		} catch (error: unknown) {
 			lastError = error;
+			const message = error instanceof Error ? error.message : String(error);
+			console.warn(`[generation:${runId}] stage=${stage} attempt=${attempt} status=error durationMs=${Date.now() - startedAt} message=${message}`);
 			if (attempt === STAGE_RETRY_ATTEMPTS) {
 				break;
 			}
