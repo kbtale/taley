@@ -1,11 +1,21 @@
 <script lang="ts">
 	import { getUIState } from '$lib/state/ui.svelte.js';
+	import { onDestroy } from 'svelte';
 
 	const ui = getUIState();
 
 	let seedPrompt = $state('');
 	let complexity = $state<'low' | 'medium' | 'high'>('medium');
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
+	let generationStatus = $state('');
+	let generationError = $state<string | null>(null);
+	let statusTimer = $state<ReturnType<typeof setInterval> | null>(null);
+	const statusSequence = [
+		'Connecting to synthesis engine...',
+		'Drafting universe constraints...',
+		'Building entities and relations...',
+		'Persisting graph state...'
+	] as const;
 
 	$effect(() => {
 		textareaRef?.focus();
@@ -13,10 +23,35 @@
 
 	let isGenerating = $state(false);
 
+	function startStatusSequence() {
+		let i = 0;
+		generationStatus = statusSequence[i] ?? 'Initializing...';
+		if (statusTimer) {
+			clearInterval(statusTimer);
+		}
+		statusTimer = setInterval(() => {
+			i = (i + 1) % statusSequence.length;
+			generationStatus = statusSequence[i] ?? generationStatus;
+		}, 1600);
+	}
+
+	function stopStatusSequence() {
+		if (statusTimer) {
+			clearInterval(statusTimer);
+			statusTimer = null;
+		}
+	}
+
+	onDestroy(() => {
+		stopStatusSequence();
+	});
+
 	async function createUniverse() {
 		if (!seedPrompt.trim() || isGenerating) return;
 
 		isGenerating = true;
+		generationError = null;
+		startStatusSequence();
 		
 		try {
 			const response = await fetch('/api/universe/seed', {
@@ -28,7 +63,16 @@
 				})
 			});
 
-			if (!response.ok) throw new Error('Big Bang failed');
+			if (!response.ok) {
+				const payload = await response.json().catch(() => ({}));
+				const message =
+					typeof payload.message === 'string'
+						? payload.message
+						: typeof payload.error === 'string'
+							? payload.error
+							: 'Universe synthesis failed.';
+				throw new Error(message);
+			}
 
 			const data = await response.json();
 			const { universe, nodes, edges } = data;
@@ -83,11 +127,12 @@
 				timestamp: Date.now()
 			});
 
-		} catch (err) {
+		} catch (err: unknown) {
 			console.error('Generation Error:', err);
-			alert('Failed to generate universe. Please try again.');
+			generationError = err instanceof Error ? err.message : 'Failed to generate universe. Please retry.';
 		} finally {
 			isGenerating = false;
+			stopStatusSequence();
 		}
 	}
 
@@ -112,19 +157,35 @@
 						style="scrollbar-width: thin; scrollbar-color: #d7c3b2 transparent;"
 						placeholder="Describe the world you want to create..." 
 						rows="4"
+						disabled={isGenerating}
 					></textarea>
 
 					<div class="p-2">
 						<button 
 							onclick={createUniverse}
 							class="w-10 h-10 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
-							disabled={!seedPrompt.trim()}
+							disabled={!seedPrompt.trim() || isGenerating}
 							aria-label="Create Universe"
 						>
 							<span class="i-lucide-arrow-up text-lg"></span>
 						</button>
 					</div>
 				</div>
+
+				{#if isGenerating}
+					<div class="pt-4 text-center">
+						<p class="font-sans text-xs uppercase tracking-widest text-stone-500">{generationStatus}</p>
+					</div>
+				{/if}
+
+				{#if generationError}
+					<div class="pt-4 text-center">
+						<p class="font-sans text-sm text-red-700">{generationError}</p>
+						<button onclick={createUniverse} class="mt-2 px-3 py-1 text-xs uppercase tracking-wider border border-stone-300 text-stone-700 hover:bg-stone-100" disabled={isGenerating || !seedPrompt.trim()}>
+							Re-ignite
+						</button>
+					</div>
+				{/if}
 
 				<div class="flex flex-wrap justify-center gap-4 pt-4 opacity-60">
 					<span class="font-sans text-[10px] uppercase tracking-wider text-stone-500">Try:</span>
@@ -140,14 +201,17 @@
 					<button 
 						onclick={() => complexity = 'low'} 
 						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'low' ? 'bg-burnt-peach text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
+						disabled={isGenerating}
 					>Low</button>
 					<button 
 						onclick={() => complexity = 'medium'} 
 						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'medium' ? 'bg-burnt-peach text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
+						disabled={isGenerating}
 					>Medium</button>
 					<button 
 						onclick={() => complexity = 'high'} 
 						class="px-8 py-2 font-sans text-[10px] uppercase tracking-widest transition-colors duration-200 {complexity === 'high' ? 'bg-burnt-peach text-linen font-bold shadow-sm' : 'text-stone-500 hover:bg-stone-200'}"
+						disabled={isGenerating}
 					>High</button>
 				</div>
 			</div>
