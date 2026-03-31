@@ -79,7 +79,7 @@
 
 			ui.setUniverse({
 				id: data.universeId,
-				title: universe.name,
+				name: universe.name,
 				premise: universe.seed_premise,
 				constraints: universe.constraints || []
 			});

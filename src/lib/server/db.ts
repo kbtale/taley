@@ -41,7 +41,6 @@ export async function persistUniverseSeed(data: SeedResponse) {
 
 	await runQuery(db, `
 		UPSERT type::record($id) CONTENT {
-			title: $name,
 			name: $name,
 			seed_premise: $premise,
 			constraints: $constraints,

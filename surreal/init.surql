@@ -4,7 +4,6 @@ DEFINE DATABASE taley;
 
 -- Root universe storage
 DEFINE TABLE universe SCHEMAFULL;
-DEFINE FIELD title ON TABLE universe TYPE string;
 DEFINE FIELD name ON TABLE universe TYPE string;
 DEFINE FIELD seed_premise ON TABLE universe TYPE string;
 DEFINE FIELD constraints ON TABLE universe TYPE array<string>;

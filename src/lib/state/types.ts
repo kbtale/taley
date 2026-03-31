@@ -2,7 +2,7 @@ export type ViewMode = 'genesis' | 'architect' | 'mutation';
 
 export interface Universe {
     id: string;
-    title: string;
+    name: string;
     premise: string;
     constraints: string[];
 }

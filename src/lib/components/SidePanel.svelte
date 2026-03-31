@@ -60,7 +60,7 @@
 <aside class="w-96 h-full flex flex-col bg-stone-50 border-r-1 border-solid border-t-0 border-b-0 border-l-0 border-stone-300 z-40">
 	<header class="p-6">
 		<h2 class="font-heading text-lg font-bold text-stone-900 tracking-tight uppercase tracking-[0.2em] opacity-40">
-			{universe?.title || 'Conversation'}
+			{universe?.name || 'Conversation'}
 		</h2>
 	</header>
 
