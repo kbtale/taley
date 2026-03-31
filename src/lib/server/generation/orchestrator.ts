@@ -25,6 +25,18 @@ const ENVIRONMENT_ORDER: EnvironmentCategory[] = [
 	'Artifact'
 ];
 
+const ENVIRONMENT_SECTION_BY_CATEGORY: Record<
+	EnvironmentCategory,
+	'Locations' | 'Collectives' | 'Events' | 'Phenomena' | 'Concepts' | 'Artifacts'
+> = {
+	Location: 'Locations',
+	Collective: 'Collectives',
+	Event: 'Events',
+	Phenomenon: 'Phenomena',
+	Concept: 'Concepts',
+	Artifact: 'Artifacts'
+};
+
 const ENVIRONMENT_TARGETS: Record<GenerationComplexity, number> = {
 	low: 12,
 	medium: 21,
@@ -127,6 +139,7 @@ async function generateEnvironmentBatch(options: {
 	const { universe, category, complexity, existingNodes } = options;
 	const batchSize = ENVIRONMENT_TARGETS[complexity];
 	const contextNames = existingNodes.map((n) => `${n.category}:${n.name}`).slice(0, 80);
+	const sectionName = ENVIRONMENT_SECTION_BY_CATEGORY[category];
 
 	const prompt = [
 		`Universe: ${universe.name}`,
@@ -135,13 +148,20 @@ async function generateEnvironmentBatch(options: {
 		'Node shape: id, name, category, description, payload { description, dynamic_attributes[] }.',
 		'Mention references inside descriptions using token format x!Name!x.',
 		contextNames.length > 0 ? `Existing context: ${contextNames.join(', ')}` : 'No prior context yet.',
-		'Return JSON object: { "nodes": [...] }'
+		`Return markdown with exactly one section heading: ## ${sectionName}.`,
+		'Inside that section include exactly one ```json fenced block with either an array of nodes or an object { "nodes": [...] }.'
 	].join('\n');
 
-	const response = await requestTaleyAI({
-		schema: environmentBatchSchema,
-		prompt
+	const markdown = await requestTaleyAIMarkdown({
+		prompt,
+		formatInstruction: `Return ONLY markdown with exactly one section named ## ${sectionName} and a single json fenced block in that section.`
 	});
+
+	const parsedSection = extractSectionJson(markdown, sectionName);
+	const normalizedPayload = Array.isArray(parsedSection)
+		? { nodes: parsedSection }
+		: parsedSection;
+	const response = environmentBatchSchema.parse(normalizedPayload);
 
 	for (const node of response.nodes) {
 		environmentCategorySchema.parse(node.category);
