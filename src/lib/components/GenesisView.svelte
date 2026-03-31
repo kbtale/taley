@@ -43,10 +43,17 @@
 			nodes.forEach((node: import('../schemas/node.js').Node) => {
 				const logicalCategory: import('$lib/state/types.js').NodeCategory = (() => {
 					switch (node.category) {
-						case 'Biological Entity': return 'biological';
-						case 'Location': return 'location';
-						case 'Artifact': return 'artifact';
-						default: return 'generic';
+						case 'Character':
+						case 'Location':
+						case 'Artifact':
+						case 'Event':
+						case 'Collective':
+						case 'Concept':
+						case 'Phenomenon':
+						case 'Unknown':
+							return node.category;
+						default:
+							return 'Unknown';
 					}
 				})();
 
@@ -64,8 +71,7 @@
 				ui.addEdge({
 					id: crypto.randomUUID(),
 					source: edge.source,
-					target: edge.target,
-					label: edge.visual_nature
+					target: edge.target
 				});
 			});
 

@@ -55,12 +55,12 @@ export async function persistUniverseSeed(data: SeedResponse) {
 	for (const edge of edges) {
 		await db.query(`
 			RELATE ${edge.source}->linked_to->${edge.target} 
-			SET 
-				visual_nature = $nature,
-				relational_context = $context
+			-- SET 
+			-- 	visual_nature = $nature,
+			-- 	relational_context = $context
 		`, {
-			nature: edge.visual_nature,
-			context: edge.relational_context
+			// nature: edge.visual_nature,
+			// context: edge.relational_context
 		});
 	}
 

@@ -8,8 +8,8 @@ const SYSTEM_RULES = `
 The info in this file is meant to be handled in ENGLISH.
 
 1. Any element on the board must have: id, name, category, and payload.
-2. CATEGORIES: 'Biological Entity', 'Collective', 'Location', 'Event', 'Artifact', 'Concept', 'Phenomenon'.
-3. BIOLOGICAL ENTITIES: Must include identity (name, age, species, gender), appearance (desc, clothes, mods), psychology (mbti, enneagram, big5, alignment), biography, and dynamic_attributes.
+2. CATEGORIES: 'Character', 'Collective', 'Location', 'Event', 'Artifact', 'Concept', 'Phenomenon', 'Unknown'.
+3. CHARACTERS: Must include identity (name, age, species, gender), appearance (desc, clothes, mods), psychology (mbti, enneagram, big5, alignment), biography, and dynamic_attributes.
 6. JSON: Strictly follow numeric types. Big 5 scores MUST be integers. dynamic_attributes MUST be a FLAT ARRAY of strings (tags).
 7. ROOT: Return the object structure DIRECTLY at the root. Do not nest under 'biological_entity'.
 8. EXAMPLE STRUCTURE:
@@ -112,8 +112,11 @@ export async function generateUniverseSeed(options: {
 	const limit = nodeLimits[complexity];
 
 	const prompt = `
-		Generate a cohesive world seed following Format 1 (Seed) based on the following premise: "${premise}".
-		Output: Exactly ${limit} nodes.
+		Generate a JSON object following Format 1 (Seed) based on the premise: "${premise}".
+		Structure:
+		- "universe": { name, seed_premise, constraints }
+		- "nodes": Exactly ${limit} entries. Each node requires [id, name, category, description, payload]. The payload must include [dynamic_attributes]. Characters require [biography, identity, appearance, psychology].
+		- "edges": Connections using generated node IDs. Each edge requires [source, target].
 	`;
 
 	return await requestTaleyAI({

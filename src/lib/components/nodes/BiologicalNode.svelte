@@ -16,6 +16,6 @@
 	</div>
 	<div class="mt-2 text-center">
 		<span class="block font-heading text-[11px] font-bold {mutating ? 'text-burnt-peach' : 'text-burnt-peach'} uppercase">{node.name}</span>
-		<span class="block font-sans text-[9px] text-stone-400 uppercase tracking-tighter">Entity</span>
+		<span class="block font-sans text-[9px] text-stone-400 uppercase tracking-tighter">Character</span>
 	</div>
 </button>

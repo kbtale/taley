@@ -17,7 +17,15 @@ export interface AppEvent {
     timestamp: number;
 }
 
-export type NodeCategory = 'biological' | 'location' | 'artifact' | 'generic';
+export type NodeCategory =
+    | 'Character'
+    | 'Location'
+    | 'Artifact'
+    | 'Event'
+    | 'Collective'
+    | 'Concept'
+    | 'Phenomenon'
+    | 'Unknown';
 
 export interface AppNode {
     id: string;
@@ -33,6 +41,8 @@ export interface AppEdge {
 	source: string;
 	target: string;
 	label?: string;
+    // visual_nature?: 'Positive' | 'Negative' | 'Hierarchical' | 'Neutral' | 'Belonging';
+    // relational_context?: string;
 }
 
 export type MutationState = 'idle' | 'calculating' | 'reviewing';

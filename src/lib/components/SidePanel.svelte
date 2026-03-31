@@ -24,7 +24,7 @@
 		if (['/mutate', '/mutation'].includes(cmd.toLowerCase())) {
 			ui.startMutation();
 			setTimeout(() => {
-				const protagonist = ui.nodes.find(n => n.category === 'biological');
+				const protagonist = ui.nodes.find(n => n.category === 'Character');
 				ui.stageMutation({
 					id: crypto.randomUUID(),
 					description: 'The entity undergoes a radical biological shift as the resonance rift stabilizes.',

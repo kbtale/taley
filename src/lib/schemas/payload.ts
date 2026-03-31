@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const biologicalPayloadSchema = z.object({
+export const characterPayloadSchema = z.object({
 	identity: z.object({
 		name: z.string(),
 		age: z.string().or(z.number()),
@@ -33,5 +33,5 @@ export const genericPayloadSchema = z.object({
 	dynamic_attributes: z.array(z.string())
 });
 
-export type BiologicalPayload = z.infer<typeof biologicalPayloadSchema>;
+export type CharacterPayload = z.infer<typeof characterPayloadSchema>;
 export type GenericPayload = z.infer<typeof genericPayloadSchema>;
