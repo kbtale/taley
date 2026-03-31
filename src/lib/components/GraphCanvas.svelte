@@ -31,7 +31,7 @@
 			{@const isMutating = ui.mutationState === 'reviewing' && ui.pendingMutation?.affectedNodes.includes(node.id)}
 			<Node id={node.id} position={{ x: node.position.x, y: node.position.y }} bgColor="transparent" borderColor="transparent" let:grabHandle>
 				<div use:grabHandle>
-					{#if node.category === 'biological'}
+					{#if node.category === 'Character'}
 						<BiologicalNode {node} onclick={handleNodeClick} mutating={isMutating} />
 					{:else}
 						<GenericNode {node} onclick={handleNodeClick} mutating={isMutating} />

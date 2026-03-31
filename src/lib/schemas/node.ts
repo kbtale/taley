@@ -1,15 +1,16 @@
 import { z } from 'zod';
-import { biologicalPayloadSchema, genericPayloadSchema } from './payload';
+import { characterPayloadSchema, genericPayloadSchema } from './payload';
 
 const baseNodeSchema = z.object({
 	id: z.string(),
-	name: z.string()
+	name: z.string(),
+	description: z.string()
 });
 
 export const nodeSchema = z.discriminatedUnion('category', [
 	baseNodeSchema.extend({
-		category: z.literal('Biological Entity'),
-		payload: biologicalPayloadSchema
+		category: z.literal('Character'),
+		payload: characterPayloadSchema
 	}),
 	baseNodeSchema.extend({
 		category: z.literal('Collective'),
@@ -33,6 +34,10 @@ export const nodeSchema = z.discriminatedUnion('category', [
 	}),
 	baseNodeSchema.extend({
 		category: z.literal('Phenomenon'),
+		payload: genericPayloadSchema
+	}),
+	baseNodeSchema.extend({
+		category: z.literal('Unknown'),
 		payload: genericPayloadSchema
 	})
 ]);

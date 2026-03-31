@@ -14,13 +14,14 @@ DEFINE FIELD universe ON TABLE node TYPE record<universe>;
 DEFINE FIELD name ON TABLE node TYPE string;
 DEFINE FIELD category ON TABLE node TYPE string 
     ASSERT $value INSIDE [
-        'Biological Entity', 
+        'Character', 
         'Collective', 
         'Location', 
         'Event', 
         'Artifact', 
         'Concept', 
-        'Phenomenon'
+        'Phenomenon',
+        'Unknown'
     ];
 
 DEFINE INDEX idx_node_universe ON TABLE node FIELDS universe;

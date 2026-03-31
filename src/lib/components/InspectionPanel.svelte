@@ -70,7 +70,7 @@
 			</header>
 
 			<div class="flex-1 overflow-y-auto px-6 py-8 space-y-10" style="scrollbar-width: thin; scrollbar-color: #d7c3b2 transparent;">
-				{#if node.category === 'biological' && payload?.identity}
+				{#if node.category === 'Character' && payload?.identity}
 					<section>
 						<h3 class="font-sans text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-4">Identity</h3>
 						<div class="grid grid-cols-2 gap-4">

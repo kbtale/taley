@@ -3,13 +3,17 @@
 
 	let { node, onclick, mutating = false }: { node: AppNode; onclick: (node: AppNode) => void, mutating?: boolean } = $props();
 
-	const categoryConfig: Record<Exclude<NodeCategory, 'biological'>, { border: string; text: string; icon: string; label: string; shape: string }> = {
-		location: { border: 'border-muted-teal', text: 'text-muted-teal', icon: 'i-lucide-globe', label: 'Location', shape: '' },
-		artifact: { border: 'border-sunlit-clay', text: 'text-sunlit-clay', icon: 'i-lucide-sparkles', label: 'Artifact', shape: 'rotate-45' },
-		generic: { border: 'border-stone-400', text: 'text-stone-400', icon: 'i-lucide-box', label: 'Node', shape: '' }
+	const categoryConfig: Record<Exclude<NodeCategory, 'Character'>, { border: string; text: string; icon: string; label: string; shape: string }> = {
+		Location: { border: 'border-muted-teal', text: 'text-muted-teal', icon: 'i-lucide-globe', label: 'Location', shape: '' },
+		Artifact: { border: 'border-sunlit-clay', text: 'text-sunlit-clay', icon: 'i-lucide-sparkles', label: 'Artifact', shape: 'rotate-45' },
+		Event: { border: 'border-burnt-peach', text: 'text-burnt-peach', icon: 'i-lucide-zap', label: 'Event', shape: '' },
+		Collective: { border: 'border-blush-rose', text: 'text-blush-rose', icon: 'i-lucide-users', label: 'Collective', shape: '' },
+		Concept: { border: 'border-stone-500', text: 'text-stone-500', icon: 'i-lucide-lightbulb', label: 'Concept', shape: '' },
+		Phenomenon: { border: 'border-muted-teal', text: 'text-muted-teal', icon: 'i-lucide-orbit', label: 'Phenomenon', shape: '' },
+		Unknown: { border: 'border-stone-400', text: 'text-stone-400', icon: 'i-lucide-circle-help', label: 'Unknown', shape: '' }
 	};
 
-	const config = $derived(categoryConfig[node.category as Exclude<NodeCategory, 'biological'>] || categoryConfig.generic);
+	const config = $derived(categoryConfig[node.category as Exclude<NodeCategory, 'Character'>] || categoryConfig.Unknown);
 </script>
 
 <button type="button" class="relative flex flex-col items-center cursor-pointer group bg-transparent {mutating ? 'animate-pulse' : ''}" onclick={() => onclick(node)}>
