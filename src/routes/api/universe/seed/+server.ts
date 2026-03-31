@@ -1,8 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { generateUniverseSeed } from '$lib/server/ai';
+import type { RequestHandler } from './$types';
+import { generateUniverseByAlgorithm } from '$lib/server/generation/orchestrator';
 import { persistUniverseSeed } from '$lib/server/db';
 
-export const POST = async ({ request }) => {
+export const POST: RequestHandler = async ({ request }) => {
 	const { premise, complexity = 'medium' } = await request.json();
 
 	if (!premise) {
@@ -10,7 +11,7 @@ export const POST = async ({ request }) => {
 	}
 
 	try {
-		const seedData = await generateUniverseSeed({ premise, complexity });
+		const seedData = await generateUniverseByAlgorithm({ premise, complexity });
 
 		const { universeId } = await persistUniverseSeed(seedData);
 
