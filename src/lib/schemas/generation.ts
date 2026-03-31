@@ -13,6 +13,30 @@ export const environmentCategorySchema = z.enum([
 
 export const generationComplexitySchema = z.enum(['low', 'medium', 'high']);
 
+export const generationMarkdownSectionSchema = z.enum([
+	'Universe',
+	'Locations',
+	'Collectives',
+	'Events',
+	'Phenomena',
+	'Concepts',
+	'Artifacts',
+	'Characters',
+	'Connections'
+]);
+
+export const generationMarkdownSectionOrder = [
+	'Universe',
+	'Locations',
+	'Collectives',
+	'Events',
+	'Phenomena',
+	'Concepts',
+	'Artifacts',
+	'Characters',
+	'Connections'
+] as const satisfies readonly z.infer<typeof generationMarkdownSectionSchema>[];
+
 export const universeMetadataSchema = universeSchema.pick({
 	id: true,
 	name: true,
@@ -40,6 +64,7 @@ export const characterBatchSchema = z.object({
 
 export type EnvironmentCategory = z.infer<typeof environmentCategorySchema>;
 export type GenerationComplexity = z.infer<typeof generationComplexitySchema>;
+export type GenerationMarkdownSection = z.infer<typeof generationMarkdownSectionSchema>;
 export type UniverseMetadata = z.infer<typeof universeMetadataSchema>;
 export type EnvironmentBatch = z.infer<typeof environmentBatchSchema>;
 export type CharacterBatch = z.infer<typeof characterBatchSchema>;
