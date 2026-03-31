@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractMarkdownSection, extractSectionJson } from './markdown-parser';
+import { extractMarkdownSection, extractSectionArrayTuples, extractSectionJson } from './markdown-parser';
 
 const sample = `## Universe
 \n\
@@ -41,5 +41,26 @@ describe('markdown parser', () => {
 	it('throws when json is invalid', () => {
 		const bad = `## Universe\n\n\`\`\`json\n{\"id\":\n\`\`\``;
 		expect(() => extractSectionJson(bad, 'Universe')).toThrow('Section Universe has invalid json:');
+	});
+
+	it('parses array tuple lines from a generic code block', () => {
+		const markdown = `## Concepts\n\n\`\`\`\n[\"Veil Logic\",\"A belief system\",[\"belief\",\"mist\"]]\n[\"Sky Oath\",\"A social pact\",[\"oath\",\"air\"]]\n\`\`\``;
+		const tuples = extractSectionArrayTuples(markdown, 'Concepts') as Array<[string, string, string[]]>;
+		expect(tuples[0]?.[0]).toBe('Veil Logic');
+		expect(tuples[1]?.[2]).toEqual(['oath', 'air']);
+	});
+
+	it('parses parenthesized tuple lines from a generic code block', () => {
+		const markdown = `## Events\n\n\`\`\`\n(\"The Great Drift\",\"A major migration event\",[\"migration\",\"storm\"])\n\`\`\``;
+		const tuples = extractSectionArrayTuples(markdown, 'Events') as Array<[string, string, string[]]>;
+		expect(tuples[0]?.[0]).toBe('The Great Drift');
+		expect(tuples[0]?.[2]).toEqual(['migration', 'storm']);
+	});
+
+	it('throws tuple syntax error for malformed tuple line', () => {
+		const markdown = `## Events\n\n\`\`\`\nThe Great Drift | migration event\n\`\`\``;
+		expect(() => extractSectionArrayTuples(markdown, 'Events')).toThrow(
+			'Section Events has invalid tuple on line 1.'
+		);
 	});
 });
