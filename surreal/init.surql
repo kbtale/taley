@@ -5,7 +5,9 @@ DEFINE DATABASE taley;
 -- Root universe storage
 DEFINE TABLE universe SCHEMAFULL;
 DEFINE FIELD title ON TABLE universe TYPE string;
+DEFINE FIELD name ON TABLE universe TYPE string;
 DEFINE FIELD seed_premise ON TABLE universe TYPE string;
+DEFINE FIELD constraints ON TABLE universe TYPE array<string>;
 DEFINE FIELD created_at ON TABLE universe TYPE datetime DEFAULT time::now();
 
 -- Storyboard nodes
@@ -43,8 +45,3 @@ DEFINE FIELD relational_context ON TABLE linked_to TYPE string;
 
 DEFINE INDEX idx_edge_universe ON TABLE linked_to FIELDS universe;
 DEFINE INDEX idx_linked_in_out ON TABLE linked_to FIELDS universe, in, out;
-
--- Full-Text Search
-DEFINE ANALYZER taley_analyzer TOKENIZERS snowball(english) FILTERS snowball(english);
-DEFINE INDEX idx_bio_search ON TABLE node FIELDS payload.biography SEARCH ANALYZER taley_analyzer;
-DEFINE INDEX idx_desc_search ON TABLE node FIELDS payload.description SEARCH ANALYZER taley_analyzer;
