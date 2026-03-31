@@ -3,28 +3,26 @@ import type { ZodType } from 'zod';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const SYSTEM_RULES = `
+const TALey_CORE_RULES = `
 # Taley Storyboard Rules
 The info in this file is meant to be handled in ENGLISH.
 
 1. Any element on the board must have: id, name, category, and payload.
 2. CATEGORIES: 'Character', 'Collective', 'Location', 'Event', 'Artifact', 'Concept', 'Phenomenon', 'Unknown'.
 3. CHARACTERS: Must include identity (name, age, species, gender), appearance (desc, clothes, mods), psychology (mbti, enneagram, big5, alignment), biography, and dynamic_attributes.
-6. JSON: Strictly follow numeric types. Big 5 scores MUST be integers. dynamic_attributes MUST be a FLAT ARRAY of strings (tags).
-7. ROOT: Return the object structure DIRECTLY at the root. Do not nest under 'biological_entity'.
-8. EXAMPLE STRUCTURE:
-{
-  "identity": { "name": "...", "age": 30, "species": "...", "gender": "..." },
-  "appearance": { "description": "...", "clothing": "...", "modifications": "..." },
-  "psychology": { "mbti": "...", "enneagram": "...", "big5": { "openness": 50, "conscientiousness": 50, "extraversion": 50, "agreeableness": 50, "neuroticism": 50 }, "moral_alignment": "..." },
-  "biography": "...",
-  "dynamic_attributes": ["tag1", "tag2"]
-}
+6. Big 5 scores MUST be integers from 1 to 100.
+7. dynamic_attributes must be a flat array of strings (tags).
 
 RESPONSE FORMATS:
 - Format 1 (Seed): List of Nodes and Connections.
 - Format 2 (Impact): List of affected Categories and Attributes with mutation instructions.
 - Format 3 (Mutation): Nodes to create, Nodes to update, Connections to create, and IDs to delete.
+`;
+
+const JSON_RESPONSE_RULES = `
+JSON FORMAT RULES:
+- Return a JSON object at the root.
+- Do not wrap inside other containers.
 `;
 
 export async function requestTaleyAI<T>(options: {
@@ -45,7 +43,7 @@ export async function requestTaleyAI<T>(options: {
 	const body = JSON.stringify({
 		model,
 		messages: [
-			{ role: 'system', content: SYSTEM_RULES + '\nReturn ONLY a JSON object.' },
+			{ role: 'system', content: `${TALey_CORE_RULES}\n${JSON_RESPONSE_RULES}\nReturn ONLY a JSON object.` },
 			{ role: 'user', content: prompt }
 		],
 		max_tokens: maxTokens,
@@ -113,13 +111,13 @@ export async function requestTaleyAIMarkdown(options: {
 		model = 'google/gemini-3.1-flash-lite-preview',
 		maxTokens = 8000,
 		retries = 3,
-		formatInstruction = 'Return ONLY markdown with strict section headings and fenced json code blocks.'
+		formatInstruction = 'Return ONLY markdown with strict section headings and fenced code blocks.'
 	} = options;
 
 	const body = JSON.stringify({
 		model,
 		messages: [
-			{ role: 'system', content: `${SYSTEM_RULES}\n${formatInstruction}` },
+			{ role: 'system', content: `${TALey_CORE_RULES}\n${formatInstruction}` },
 			{ role: 'user', content: prompt }
 		],
 		max_tokens: maxTokens

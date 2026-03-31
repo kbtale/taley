@@ -1,12 +1,15 @@
 import { seedResponseSchema, type SeedResponse } from '$lib/schemas/seed.js';
 import {
 	environmentBatchSchema,
+	environmentBatchTupleSchema,
 	environmentCategorySchema,
 	type EnvironmentCategory,
 	type GenerationComplexity,
 	generationMarkdownSectionOrder,
 	universeMetadataSchema,
-	characterBatchSchema
+	universeMetadataTupleSchema,
+	characterBatchSchema,
+	characterBatchTupleSchema
 } from '$lib/schemas/generation.js';
 import type { Node } from '$lib/schemas/node.js';
 import type { Edge } from '$lib/schemas/edge.js';
@@ -14,7 +17,13 @@ import type { MentionRecord } from '$lib/schemas/mention.js';
 import { requestTaleyAIMarkdown } from '$lib/server/ai.js';
 import { buildCharacterPsychologySeedSet } from './personality.js';
 import { extractMentionsFromNodes, normalizeName } from './mention-parser.js';
-import { extractSectionJson } from './markdown-parser.js';
+import { extractSectionArrayTuples } from './markdown-parser.js';
+import {
+	mapCharacterTupleToNode,
+	mapEnvironmentTupleToNode,
+	mapUniverseTupleToMetadata
+} from './tuple-mappers.js';
+import { buildUnknownNodeId } from './generation-ids.js';
 
 const ENVIRONMENT_ORDER: EnvironmentCategory[] = [
 	'Location',
@@ -131,17 +140,23 @@ async function generateUniverseMetadata(premise: string, complexity: GenerationC
 		`Generate universe metadata for this seed premise: "${premise}".`,
 		`Complexity: ${complexity}.`,
 		`Return markdown with exactly one section heading: ## ${generationMarkdownSectionOrder[0]}`,
-		'Inside that section include exactly one ```json fenced block with fields: id, name, seed_premise, constraints.',
-		'Constraints must be an array of concise world rules.'
+		'Inside that section include exactly one fenced code block with one array tuple line in this exact order:',
+		'[name, seed_premise, constraintsArray].',
+		'constraintsArray must be an array of concise world rules.',
+		'Use double quotes in array values and no explanatory prose inside the code block.'
 	].join('\n');
 
 	const markdown = await requestTaleyAIMarkdown({
 		prompt,
-		formatInstruction: `Return ONLY markdown with exactly one section named ## ${generationMarkdownSectionOrder[0]} and a single json fenced block in that section.`
+		formatInstruction: `Return ONLY markdown with exactly one section named ## ${generationMarkdownSectionOrder[0]} and one fenced code block containing exactly one array tuple line.`
 	});
 
-	const parsedUniverse = extractSectionJson(markdown, generationMarkdownSectionOrder[0]);
-	return universeMetadataSchema.parse(parsedUniverse);
+	const tuples = extractSectionArrayTuples(markdown, generationMarkdownSectionOrder[0]);
+	if (tuples.length !== 1) {
+		throw new Error(`Section ${generationMarkdownSectionOrder[0]} must contain exactly one tuple line`);
+	}
+	const tuple = universeMetadataTupleSchema.parse(tuples[0]);
+	return universeMetadataSchema.parse(mapUniverseTupleToMetadata(tuple));
 }
 
 async function generateEnvironmentBatch(options: {
@@ -159,42 +174,24 @@ async function generateEnvironmentBatch(options: {
 		`Universe: ${universe.name}`,
 		`Seed premise: ${universe.seed_premise}`,
 		`Generate exactly ${batchSize} nodes with category "${category}".`,
-		'Node shape: id, name, category, description, payload { description, dynamic_attributes[] }.',
+		'Return one array tuple per line in this exact order:',
+		'[name, description, dynamicAttributesArray].',
 		'Mention references inside descriptions using token format x!Name!x.',
 		contextNames.length > 0 ? `Existing context: ${contextNames.join(', ')}` : 'No prior context yet.',
 		`Return markdown with exactly one section heading: ## ${sectionName}.`,
-		'Inside that section include exactly one ```json fenced block with either an array of nodes or an object { "nodes": [...] }.'
+		'Inside that section include exactly one fenced code block containing only tuple lines (no object keys, no wrapper arrays).',
+		'Use double quotes in array values.'
 	].join('\n');
 
 	const markdown = await requestTaleyAIMarkdown({
 		prompt,
-		formatInstruction: `Return ONLY markdown with exactly one section named ## ${sectionName} and a single json fenced block in that section.`
+		formatInstruction: `Return ONLY markdown with exactly one section named ## ${sectionName} and one fenced code block containing tuple lines.`
 	});
 
-	const parsedSection = extractSectionJson(markdown, sectionName);
-	const normalizedPayload = Array.isArray(parsedSection)
-		? { nodes: parsedSection }
-		: parsedSection;
-	const candidate = normalizedPayload as { nodes: Array<Record<string, unknown>> };
-	const normalizedNodes = (candidate.nodes ?? []).map((node) => {
-		const payload = typeof node.payload === 'object' && node.payload !== null
-			? (node.payload as Record<string, unknown>)
-			: {};
-		const fallbackDescription =
-			typeof payload.description === 'string' && payload.description.trim().length > 0
-				? payload.description
-				: typeof node.name === 'string'
-					? node.name
-					: 'Unnamed node';
-		return {
-			...node,
-			description:
-				typeof node.description === 'string' && node.description.trim().length > 0
-					? node.description
-					: fallbackDescription
-		};
-	});
-	const response = environmentBatchSchema.parse({ nodes: normalizedNodes });
+	const tupleLines = extractSectionArrayTuples(markdown, sectionName);
+	const tuples = environmentBatchTupleSchema.parse(tupleLines);
+	const mappedNodes = tuples.map((tuple, index) => mapEnvironmentTupleToNode(tuple, category, index));
+	const response = environmentBatchSchema.parse({ nodes: mappedNodes });
 
 	for (const node of response.nodes) {
 		environmentCategorySchema.parse(node.category);
@@ -218,25 +215,25 @@ async function generateCharacterBatch(options: {
 		`Seed premise: ${universe.seed_premise}`,
 		`Complexity: ${complexity}`,
 		`Generate exactly ${psychologySeeds.length} Character nodes.`,
-		'Node shape: id, name, category, description, payload.',
-		'Character payload requires identity, appearance, psychology, biography, dynamic_attributes.',
+		'Return one Character array tuple per line. Each tuple must use this exact order:',
+		'[name, description, identityName, age, species, gender, appearanceDescription, clothing, modifications, mbti, enneagram, openness, conscientiousness, extraversion, agreeableness, neuroticism, moralAlignment, biography, dynamicAttributesArray].',
 		'Mention references inside descriptions using token format x!Name!x.',
 		`Use these psychology seed tendencies (in order): ${JSON.stringify(psychologySeeds)}`,
 		contextNames.length > 0 ? `Existing context: ${contextNames.join(', ')}` : 'No prior context.',
 		`Return markdown with exactly one section heading: ## ${sectionName}.`,
-		'Inside that section include exactly one ```json fenced block with either an array of nodes or an object { "nodes": [...] }.'
+		'Inside that section include exactly one fenced code block containing only tuple lines (no object keys, no wrapper arrays).',
+		'Use double quotes in array values.'
 	].join('\n');
 
 	const markdown = await requestTaleyAIMarkdown({
 		prompt,
-		formatInstruction: `Return ONLY markdown with exactly one section named ## ${sectionName} and a single json fenced block in that section.`
+		formatInstruction: `Return ONLY markdown with exactly one section named ## ${sectionName} and one fenced code block containing tuple lines.`
 	});
 
-	const parsedSection = extractSectionJson(markdown, sectionName);
-	const normalizedPayload = Array.isArray(parsedSection)
-		? { nodes: parsedSection }
-		: parsedSection;
-	const response = characterBatchSchema.parse(normalizedPayload);
+	const tupleLines = extractSectionArrayTuples(markdown, sectionName);
+	const tuples = characterBatchTupleSchema.parse(tupleLines);
+	const mappedNodes = tuples.map((tuple, index) => mapCharacterTupleToNode(tuple, index));
+	const response = characterBatchSchema.parse({ nodes: mappedNodes });
 
 	return response.nodes as Node[];
 }
@@ -250,10 +247,8 @@ function upsertNode(node: Node, byId: Map<string, Node>, byName: Map<string, str
 }
 
 function createUnknownNode(mention: MentionRecord): Node {
-	const slug = normalizeName(mention.name).replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-	const hash = hashString(mention.normalizedName || mention.name);
 	return {
-		id: `node:unknown-${slug || 'entity'}-${hash}`,
+		id: buildUnknownNodeId(mention.name, mention.normalizedName),
 		name: mention.name,
 		category: 'Unknown',
 		description: 'Auto-created from unresolved mention token.',
@@ -262,15 +257,6 @@ function createUnknownNode(mention: MentionRecord): Node {
 			dynamic_attributes: ['unknown', 'unresolved_mention']
 		}
 	};
-}
-
-function hashString(value: string): string {
-	let hash = 2166136261;
-	for (let i = 0; i < value.length; i++) {
-		hash ^= value.charCodeAt(i);
-		hash = Math.imul(hash, 16777619);
-	}
-	return (hash >>> 0).toString(36);
 }
 
 async function runStageWithRetries<T>(stage: string, run: () => Promise<T>, runId: string): Promise<T> {
