@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getUIState } from '$lib/state/ui.svelte.js';
+	import type { PendingMutation } from '$lib/state/types.js';
 
 	const ui = getUIState();
 
@@ -7,6 +8,9 @@
 	const universe = $derived(ui.universe);
 
 	let isCollapsed = $state(false);
+	let mutationCommand = $state('');
+	let isSubmittingMutation = $state(false);
+	let mutationError = $state<string | null>(null);
 
 	function toggleCollapse() {
 		isCollapsed = !isCollapsed;
@@ -14,6 +18,152 @@
 
 	function closeSelection() {
 		ui.selectNode(null);
+	}
+
+	type MutationApiUpdatedNode = {
+		id: string;
+		name?: string;
+		description?: string;
+	};
+
+	type MutationApiResponse = {
+		runId?: string;
+		persisted?: boolean;
+		mutation?: {
+			summary?: string;
+			affectedNodeIds?: string[];
+			updatedNodes?: MutationApiUpdatedNode[];
+		};
+		error?: string;
+		message?: string;
+	};
+
+	function buildMutationDiffs(updatedNodes: MutationApiUpdatedNode[]): PendingMutation['diffs'] {
+		const diffs: PendingMutation['diffs'] = [];
+
+		for (const updated of updatedNodes) {
+			const current = ui.nodes.find((candidate) => candidate.id === updated.id);
+			if (!current) {
+				continue;
+			}
+
+			if (typeof updated.name === 'string' && updated.name !== current.name) {
+				diffs.push({
+					nodeId: current.id,
+					nodeName: current.name,
+					field: 'name',
+					oldValue: current.name,
+					newValue: updated.name
+				});
+			}
+
+			if (typeof updated.description === 'string' && updated.description !== current.description) {
+				diffs.push({
+					nodeId: current.id,
+					nodeName: current.name,
+					field: 'description',
+					oldValue: current.description,
+					newValue: updated.description
+				});
+			}
+		}
+
+		return diffs;
+	}
+
+	async function submitMutationCommand() {
+		if (!node || !mutationCommand.trim() || isSubmittingMutation) {
+			return;
+		}
+
+		const targetNodeId = node.id;
+		const command = mutationCommand.trim();
+		let keepReviewOpen = false;
+
+		isSubmittingMutation = true;
+		mutationError = null;
+		ui.startMutation();
+
+		try {
+			const response = await fetch('/api/nodes/mutate', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ targetNodeId, command })
+			});
+
+			const payload: MutationApiResponse = await response.json().catch(() => ({}));
+			if (!response.ok) {
+				const message =
+					typeof payload.message === 'string'
+						? payload.message
+						: typeof payload.error === 'string'
+							? payload.error
+							: 'Mutation request failed.';
+				throw new Error(message);
+			}
+
+			const summary =
+				typeof payload.mutation?.summary === 'string'
+					? payload.mutation.summary
+					: 'Mutation completed.';
+
+			const affectedNodeIds = Array.isArray(payload.mutation?.affectedNodeIds)
+				? payload.mutation.affectedNodeIds.filter((value): value is string => typeof value === 'string')
+				: [targetNodeId];
+
+			const updatedNodes = Array.isArray(payload.mutation?.updatedNodes)
+				? payload.mutation.updatedNodes
+						.filter((value): value is MutationApiUpdatedNode => value !== null && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string')
+						.map((value) => ({
+							id: value.id,
+							...(typeof value.name === 'string' ? { name: value.name } : {}),
+							...(typeof value.description === 'string' ? { description: value.description } : {})
+						}))
+				: [];
+
+			const diffs = buildMutationDiffs(updatedNodes);
+			if (payload.persisted === false) {
+				ui.stageMutation({
+					id: payload.runId ?? crypto.randomUUID(),
+					description: summary,
+					affectedNodes: affectedNodeIds,
+					diffs
+				});
+				keepReviewOpen = true;
+			} else if (diffs.length > 0) {
+				ui.stageMutation({
+					id: payload.runId ?? crypto.randomUUID(),
+					description: summary,
+					affectedNodes: affectedNodeIds,
+					diffs
+				});
+				ui.commitMutation();
+			} else {
+				ui.addEvent({
+					id: crypto.randomUUID(),
+					type: 'mutation',
+					name: 'Mutation',
+					message: summary,
+					timestamp: Date.now()
+				});
+			}
+
+			mutationCommand = '';
+		} catch (err: unknown) {
+			mutationError = err instanceof Error ? err.message : 'Mutation request failed.';
+		} finally {
+			isSubmittingMutation = false;
+			if (!keepReviewOpen && ui.mutationState !== 'idle') {
+				ui.abortMutation();
+			}
+		}
+	}
+
+	function handleMutationKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			void submitMutationCommand();
+		}
 	}
 
 	// Helper for Big 5 labels
@@ -119,6 +269,36 @@
 						</p>
 					</div>
 				</section>
+			</div>
+
+			<div class="border-t border-stone-200 p-4 space-y-2 bg-stone-50">
+				<span class="font-sans text-[10px] uppercase tracking-widest text-stone-400 font-bold">Local Mutation</span>
+				<div class="w-full bg-white border-1 border-solid border-stone-300 shadow-sm flex items-center focus-within:border-burnt-peach transition-colors">
+					<input
+						type="text"
+						bind:value={mutationCommand}
+						onkeydown={handleMutationKeydown}
+						placeholder="Mutate this node context..."
+						class="appearance-none flex-1 bg-transparent p-3 text-sm font-sans border-none outline-none focus:ring-0 text-stone-900 placeholder-stone-400"
+						disabled={isSubmittingMutation}
+					/>
+					<div class="p-1">
+						<button
+							onclick={() => void submitMutationCommand()}
+							class="w-8 h-8 flex items-center justify-center bg-burnt-peach text-linen hover:opacity-90 transition-opacity disabled:opacity-20"
+							disabled={!mutationCommand.trim() || isSubmittingMutation}
+							aria-label="Run Local Mutation"
+						>
+							<span class="i-lucide-zap text-base"></span>
+						</button>
+					</div>
+				</div>
+				{#if isSubmittingMutation}
+					<p class="font-sans text-[10px] uppercase tracking-widest text-stone-500">Calculating localized impact...</p>
+				{/if}
+				{#if mutationError}
+					<p class="font-sans text-xs text-red-700">{mutationError}</p>
+				{/if}
 			</div>
 
 		{:else if universe}
