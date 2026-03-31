@@ -43,6 +43,8 @@ const ENVIRONMENT_TARGETS: Record<GenerationComplexity, number> = {
 	high: 36
 };
 
+const STAGE_RETRY_ATTEMPTS = 3;
+
 export async function generateUniverseByAlgorithm(options: {
 	premise: string;
 	complexity: GenerationComplexity;
@@ -55,15 +57,19 @@ export async function generateUniverseByAlgorithm(options: {
 	const edges: Edge[] = [];
 	const edgeKeys = new Set<string>();
 
-	const universe = await generateUniverseMetadata(premise, complexity);
+	const universe = await runStageWithRetries('universe', () =>
+		generateUniverseMetadata(premise, complexity)
+	);
 
 	for (const category of ENVIRONMENT_ORDER) {
-		const generated = await generateEnvironmentBatch({
-			universe,
-			category,
-			complexity,
-			existingNodes: [...nodesById.values()]
-		});
+		const generated = await runStageWithRetries(`environment:${category}`, () =>
+			generateEnvironmentBatch({
+				universe,
+				category,
+				complexity,
+				existingNodes: [...nodesById.values()]
+			})
+		);
 
 		for (const entity of generated) {
 			upsertNode(entity, nodesById, nodeIdByNormalizedName);
@@ -73,12 +79,14 @@ export async function generateUniverseByAlgorithm(options: {
 	}
 
 	const psychologySeeds = buildCharacterPsychologySeedSet(complexity, rngSeed);
-	const generatedCharacters = await generateCharacterBatch({
-		universe,
-		complexity,
-		existingNodes: [...nodesById.values()],
-		psychologySeeds
-	});
+	const generatedCharacters = await runStageWithRetries('characters', () =>
+		generateCharacterBatch({
+			universe,
+			complexity,
+			existingNodes: [...nodesById.values()],
+			psychologySeeds
+		})
+	);
 
 	for (const character of generatedCharacters) {
 		upsertNode(character, nodesById, nodeIdByNormalizedName);
@@ -228,4 +236,24 @@ function createUnknownNode(mention: MentionRecord, index: number): Node {
 			dynamic_attributes: ['unknown', 'unresolved_mention']
 		}
 	};
+}
+
+async function runStageWithRetries<T>(stage: string, run: () => Promise<T>): Promise<T> {
+	let lastError: unknown;
+
+	for (let attempt = 1; attempt <= STAGE_RETRY_ATTEMPTS; attempt++) {
+		try {
+			return await run();
+		} catch (error: unknown) {
+			lastError = error;
+			if (attempt === STAGE_RETRY_ATTEMPTS) {
+				break;
+			}
+			const waitMs = attempt * 500;
+			await new Promise((resolve) => setTimeout(resolve, waitMs));
+		}
+	}
+
+	const message = lastError instanceof Error ? lastError.message : String(lastError);
+	throw new Error(`Stage failed after retries: ${stage}. ${message}`);
 }
