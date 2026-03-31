@@ -1,6 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { mutationRequestSchema } from '$lib/schemas/mutation.js';
+import { nodeSchema, type Node } from '$lib/schemas/node.js';
+import { edgeSchema, type Edge } from '$lib/schemas/edge.js';
+import { universeSchema } from '$lib/schemas/universe.js';
+import { generateLocalMutationByAlgorithm } from '$lib/server/generation/mutation-orchestrator.js';
 import { getDb } from '$lib/server/db';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -26,8 +30,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const payload = parsed.data;
 
 	try {
-		const exists = await hasNode(payload.targetNodeId);
-		if (!exists) {
+		const context = await buildMutationContext(payload.targetNodeId);
+		if (!context) {
 			return json(
 				{
 					runId,
@@ -38,13 +42,23 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
+		const mutation = await generateLocalMutationByAlgorithm({
+			runId,
+			command: payload.command,
+			targetNode: context.targetNode,
+			neighborNodes: context.neighborNodes,
+			existingEdges: context.existingEdges,
+			universe: context.universe,
+			maxNewNodes: payload.maxNewNodes
+		});
+
 		return json(
 			{
 				runId,
-				error: 'Mutation endpoint not implemented',
-				message: 'Endpoint contract and validation are ready. Orchestration and persistence will be added in the next task.'
+				persisted: false,
+				mutation
 			},
-			{ status: 501 }
+			{ status: 200 }
 		);
 	} catch (err: unknown) {
 		const message = err instanceof Error ? err.message : 'Unknown error';
@@ -81,11 +95,142 @@ async function parseJsonBody(request: Request, runId: string): Promise<JsonBodyR
 	}
 }
 
-async function hasNode(nodeId: string): Promise<boolean> {
+async function buildMutationContext(nodeId: string): Promise<{
+	targetNode: Node;
+	neighborNodes: Node[];
+	existingEdges: Edge[];
+	universe?: { name: string; premise?: string; constraints?: string[] };
+} | null> {
 	const db = await getDb();
-	const result = await db.query('SELECT id FROM type::record($id);', { id: nodeId });
-	const rows = extractRows(result);
-	return rows.length > 0;
+	const targetRows = extractRows(await db.query('SELECT * FROM type::record($id);', { id: nodeId }));
+	if (targetRows.length === 0) {
+		return null;
+	}
+
+	const targetRaw = targetRows[0];
+	const targetNode = toNode(targetRaw);
+	const edgeRows = extractRows(
+		await db.query(
+			`SELECT in, out, visual_nature, relational_context
+			 FROM linked_to
+			 WHERE in = type::record($id) OR out = type::record($id)
+			 LIMIT $limit;`,
+			{ id: nodeId, limit: 40 }
+		)
+	);
+
+	const existingEdges = edgeRows
+		.map((row) => toEdge(row))
+		.filter((edge): edge is Edge => edge !== null);
+
+	const neighborIdSet = new Set<string>();
+	for (const edge of existingEdges) {
+		if (edge.source !== targetNode.id) {
+			neighborIdSet.add(edge.source);
+		}
+		if (edge.target !== targetNode.id) {
+			neighborIdSet.add(edge.target);
+		}
+	}
+
+	const neighborNodes: Node[] = [];
+	for (const neighborId of neighborIdSet) {
+		const rows = extractRows(await db.query('SELECT * FROM type::record($id);', { id: neighborId }));
+		if (rows.length === 0) {
+			continue;
+		}
+		neighborNodes.push(toNode(rows[0]));
+	}
+
+	const universe = await fetchUniverseFromRow(targetRaw);
+
+	return {
+		targetNode,
+		neighborNodes,
+		existingEdges,
+		universe
+	};
+}
+
+async function fetchUniverseFromRow(row: unknown): Promise<{ name: string; premise?: string; constraints?: string[] } | undefined> {
+	const universeRecord =
+		row && typeof row === 'object'
+			? extractRecordId((row as { universe?: unknown }).universe)
+			: null;
+	if (!universeRecord) {
+		return undefined;
+	}
+
+	const db = await getDb();
+	const rows = extractRows(await db.query('SELECT * FROM type::record($id);', { id: universeRecord }));
+	if (rows.length === 0) {
+		return undefined;
+	}
+
+	const parsed = universeSchema.parse(toSerializableRecord(rows[0]));
+	return {
+		name: parsed.name,
+		premise: parsed.seed_premise,
+		constraints: parsed.constraints
+	};
+}
+
+function toNode(value: unknown): Node {
+	return nodeSchema.parse(toSerializableRecord(value));
+}
+
+function toEdge(value: unknown): Edge | null {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+	const row = value as { in?: unknown; out?: unknown; visual_nature?: unknown; relational_context?: unknown };
+	const source = extractRecordId(row.in);
+	const target = extractRecordId(row.out);
+	if (!source || !target) {
+		return null;
+	}
+
+	return edgeSchema.parse({
+		source,
+		target,
+		...(typeof row.visual_nature === 'string' ? { visual_nature: row.visual_nature } : {}),
+		...(typeof row.relational_context === 'string' ? { relational_context: row.relational_context } : {})
+	});
+}
+
+function toSerializableRecord(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map(toSerializableRecord);
+	}
+
+	if (!value || typeof value !== 'object') {
+		return value;
+	}
+
+	const thingId = extractRecordId(value);
+	if (thingId) {
+		return thingId;
+	}
+
+	const output: Record<string, unknown> = {};
+	for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+		output[key] = toSerializableRecord(nested);
+	}
+	return output;
+}
+
+function extractRecordId(value: unknown): string | null {
+	if (typeof value === 'string') {
+		return value;
+	}
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+	const thing = value as { tb?: unknown; id?: unknown };
+	if (typeof thing.tb === 'string' && (typeof thing.id === 'string' || typeof thing.id === 'number')) {
+		return `${thing.tb}:${thing.id}`;
+	}
+	return null;
 }
 
 function extractRows(result: unknown): unknown[] {
